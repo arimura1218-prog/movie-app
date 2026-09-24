@@ -369,10 +369,8 @@ export default function Home() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // カレンダーの項目をクリックした時の処理（該当カードへスクロール＆ハイライト）
+  // カレンダーのポスター画像をクリックした時の処理（該当カードへスクロール＆ハイライト）
   const handleJumpToMovie = (movie: Movie) => {
-    // 1. もし現在フィルター等で非表示になっている場合を考慮し、選択メンバーや検索をリセットするか確認
-    // ここでは、もし現在の絞り込みに含まれていなければ「全員」タブに切り替えるなどの配慮ができます
     if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
       setSelectedMember('全員');
     }
@@ -380,20 +378,17 @@ export default function Home() {
       setSearchKeyword('');
     }
 
-    // 少し待ってから（レンダリング後）該当の映画が何ページ目にあるか計算して移動する
     setTimeout(() => {
       const targetIndex = filteredAndSortedMovies.findIndex((m) => m.id === movie.id);
       if (targetIndex !== -1) {
         const targetPage = Math.floor(targetIndex / ITEMS_PER_PAGE) + 1;
         setCurrentPage(targetPage);
 
-        // ページ切り替え後にDOMが描画されるのを待ってからスクロール
         setTimeout(() => {
           const cardElement = movieCardRefs.current[movie.id];
           if (cardElement) {
             cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             setHighlightedMovieId(movie.id);
-            // 2秒後にハイライトを解除
             setTimeout(() => {
               setHighlightedMovieId(null);
             }, 2000);
@@ -578,9 +573,101 @@ export default function Home() {
     </form>
   );
 
+  // カレンダーウィジェット（日付の数字マスにポスター画像を配置）
+  const calendarWidget = (
+    <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-md space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+          📅 鑑賞カレンダー
+        </h2>
+        <div className="flex items-center gap-1 text-xs font-semibold text-slate-300">
+          <button
+            type="button"
+            onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+            className="p-1 hover:bg-zinc-800 rounded transition"
+          >
+            ◀
+          </button>
+          <span className="min-w-[70px] text-center">
+            {year}年{month + 1}月
+          </span>
+          <button
+            type="button"
+            onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+            className="p-1 hover:bg-zinc-800 rounded transition"
+          >
+            ▶
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 pb-1 border-b border-zinc-800">
+        <span className="text-rose-400">日</span>
+        <span>月</span>
+        <span>火</span>
+        <span>水</span>
+        <span>木</span>
+        <span>金</span>
+        <span className="text-sky-400">土</span>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5">
+        {calendarDays.map((d, i) => {
+          if (d === null) {
+            return <div key={`empty-${i}`} className="h-16 bg-zinc-950/30 rounded-lg"></div>;
+          }
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const dayMovies = movies.filter((m) => m.watchedDate === dateStr);
+          const hasWatched = dayMovies.length > 0;
+          const movie = hasWatched ? dayMovies[0] : null; // その日の最初の映画
+
+          return (
+            <div
+              key={`day-${d}`}
+              className={`h-16 flex flex-col items-center justify-between p-1 rounded-lg border relative overflow-hidden text-[10px] ${
+                hasWatched 
+                  ? 'bg-zinc-950 border-amber-600/60 shadow-sm' 
+                  : 'bg-zinc-950/60 border-zinc-800/80 text-slate-400'
+              }`}
+            >
+              {/* 日付の数字を左上に小さく表示 */}
+              <span className={`self-start font-mono leading-none z-10 ${hasWatched ? 'text-amber-400 font-bold bg-zinc-950/80 px-1 rounded' : 'text-slate-500'}`}>
+                {d}
+              </span>
+
+              {/* マスの中にポスター画像を配置（クリックでジャンプ） */}
+              {movie && movie.imageUrl ? (
+                <div 
+                  onClick={() => handleJumpToMovie(movie)}
+                  className="absolute inset-0 pt-4 cursor-pointer group flex items-center justify-center"
+                  title={`${movie.title} (クリックでジャンプ)`}
+                >
+                  <img 
+                    src={movie.imageUrl} 
+                    alt={movie.title} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition" 
+                  />
+                </div>
+              ) : movie ? (
+                <div 
+                  onClick={() => handleJumpToMovie(movie)}
+                  className="absolute inset-0 pt-4 cursor-pointer flex items-center justify-center text-[10px] text-amber-200 text-center px-0.5 overflow-hidden font-medium bg-amber-950/40"
+                  title={`${movie.title} (クリックでジャンプ)`}
+                >
+                  {movie.title}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <main className="min-h-screen bg-zinc-950 text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-8 relative">
-      <div className="w-full md:w-1/3 space-y-8">
+      {/* 左カラム：PCではフォーム、スマホでも上部に配置 */}
+      <div className="w-full md:w-1/3">
         <div className="md:hidden flex items-center justify-between bg-zinc-900 border border-zinc-800 p-4 rounded-2xl shadow-md mb-4">
           <h1 className="text-base font-bold text-slate-100 flex items-center gap-1.5 whitespace-nowrap">
             🎬 映画記録
@@ -622,118 +709,6 @@ export default function Home() {
           {formContent}
         </div>
 
-        {/* カレンダーウィジェット */}
-        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-md space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
-              📅 鑑賞カレンダー
-            </h2>
-            <div className="flex items-center gap-1 text-xs font-semibold text-slate-300">
-              <button
-                type="button"
-                onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-                className="p-1 hover:bg-zinc-800 rounded transition"
-              >
-                ◀
-              </button>
-              <span className="min-w-[70px] text-center">
-                {year}年{month + 1}月
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-                className="p-1 hover:bg-zinc-800 rounded transition"
-              >
-                ▶
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 pb-1 border-b border-zinc-800">
-            <span className="text-rose-400">日</span>
-            <span>月</span>
-            <span>火</span>
-            <span>水</span>
-            <span>木</span>
-            <span>金</span>
-            <span className="text-sky-400">土</span>
-          </div>
-
-          <div className="grid grid-cols-7 gap-1 text-center text-xs">
-            {calendarDays.map((d, i) => {
-              if (d === null) {
-                return <div key={`empty-${i}`} className="h-9"></div>;
-              }
-              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-              const dayMovies = movies.filter((m) => m.watchedDate === dateStr);
-              const hasWatched = dayMovies.length > 0;
-
-              return (
-                <div
-                  key={`day-${d}`}
-                  className={`h-9 flex flex-col items-center justify-center rounded-lg relative ${
-                    hasWatched ? 'bg-amber-950/60 border border-amber-600/50 text-amber-200 font-bold' : 'text-slate-300 hover:bg-zinc-800'
-                  }`}
-                  title={hasWatched ? dayMovies.map((m) => m.title).join(', ') : ''}
-                >
-                  <span className="text-xs leading-none">{d}</span>
-                  {hasWatched && (
-                    <span className="absolute bottom-1 w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* 今月の予定リスト（クリックで該当カードへジャンプ＆スクロール） */}
-          <div className="pt-2 border-t border-zinc-800 space-y-2">
-            <h3 className="text-xs font-semibold text-slate-400">今月の鑑賞予定・記録 (クリックでジャンプ)</h3>
-            <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-              {movies.filter((m) => {
-                if (!m.watchedDate) return false;
-                const mDate = new Date(m.watchedDate);
-                return mDate.getFullYear() === year && mDate.getMonth() === month;
-              }).length === 0 ? (
-                <p className="text-xs text-zinc-500 py-1">今月の鑑賞記録はありません。</p>
-              ) : (
-                movies
-                  .filter((m) => {
-                    if (!m.watchedDate) return false;
-                    const mDate = new Date(m.watchedDate);
-                    return mDate.getFullYear() === year && mDate.getMonth() === month;
-                  })
-                  .sort((a, b) => a.watchedDate.localeCompare(b.watchedDate))
-                  .map((m) => (
-                    <div 
-                      key={`month-movie-${m.id}`} 
-                      onClick={() => handleJumpToMovie(m)}
-                      className="flex items-center justify-between text-xs bg-zinc-950 p-2 rounded-xl border border-zinc-800 gap-2 cursor-pointer hover:border-amber-500/50 hover:bg-zinc-900/80 transition"
-                    >
-                      <div className="flex items-center gap-2.5 truncate">
-                        {m.imageUrl ? (
-                          <div className="w-8 h-10 bg-zinc-900 rounded overflow-hidden flex-shrink-0 flex items-center justify-center border border-zinc-800">
-                            <img src={m.imageUrl} alt={m.title} className="w-full h-full object-cover" />
-                          </div>
-                        ) : (
-                          <div className="w-8 h-10 bg-zinc-900 rounded flex-shrink-0 flex items-center justify-center text-zinc-600 text-xs border border-zinc-800">
-                            🎬
-                          </div>
-                        )}
-                        <div className="truncate">
-                          <span className="text-amber-400 font-mono text-[10px] block">{m.watchedDate.slice(5)}</span>
-                          <span className="truncate font-medium text-slate-200 block">{m.title}</span>
-                        </div>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${getStatusBadgeStyle(m.status)}`}>
-                        {m.status}
-                      </span>
-                    </div>
-                  ))
-              )}
-            </div>
-          </div>
-        </div>
-
         {isFormOpen && (
           <div className="md:hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
@@ -755,7 +730,8 @@ export default function Home() {
         )}
       </div>
 
-      <div className="flex-1 space-y-8">
+      {/* 右カラム：メインの一覧エリア ＆ その下にカレンダーを配置 */}
+      <div className="flex-1 space-y-8 flex flex-col">
         <div className="bg-zinc-900 border border-zinc-800 p-4 md:p-6 rounded-2xl shadow-md space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -1006,102 +982,105 @@ export default function Home() {
           )}
         </div>
 
-        {/* メンバー・ジャンル管理モーダル */}
-        {isManageOpen && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md space-y-6 shadow-xl">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                <h2 className="font-bold text-slate-100 text-base">⚙️ メンバー・ジャンル管理</h2>
+        {/* 映画一覧の下にカレンダーを配置 */}
+        {calendarWidget}
+      </div>
+
+      {/* メンバー・ジャンル管理モーダル */}
+      {isManageOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md space-y-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <h2 className="font-bold text-slate-100 text-base">⚙️ メンバー・ジャンル管理</h2>
+              <button
+                type="button"
+                onClick={() => setIsManageOpen(false)}
+                className="text-zinc-400 hover:text-slate-200 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* メンバー管理 */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">鑑賞メンバー管理</h3>
+              <form onSubmit={handleAddMember} className="flex gap-2">
+                <input
+                  type="text"
+                  value={newMemberName}
+                  onChange={(e) => setNewMemberName(e.target.value)}
+                  placeholder="新しいメンバー名"
+                  className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
                 <button
-                  type="button"
-                  onClick={() => setIsManageOpen(false)}
-                  className="text-zinc-400 hover:text-slate-200 text-lg font-bold"
+                  type="submit"
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition"
                 >
-                  ✕
+                  追加
                 </button>
-              </div>
-
-              {/* メンバー管理 */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">鑑賞メンバー管理</h3>
-                <form onSubmit={handleAddMember} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newMemberName}
-                    onChange={(e) => setNewMemberName(e.target.value)}
-                    placeholder="新しいメンバー名"
-                    className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition"
-                  >
-                    追加
-                  </button>
-                </form>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {members.map((m) => (
-                    <div key={m} className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs text-slate-200">
-                      <span>{m}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveMember(m)}
-                        className="text-zinc-500 hover:text-rose-400 font-bold"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ジャンル管理 */}
-              <div className="space-y-3 pt-4 border-t border-zinc-800">
-                <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">ジャンル管理</h3>
-                <form onSubmit={handleAddGenre} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newGenreName}
-                    onChange={(e) => setNewGenreName(e.target.value)}
-                    placeholder="新しいジャンル名"
-                    className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition"
-                  >
-                    追加
-                  </button>
-                </form>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {genres.map((g) => (
-                    <div key={g} className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs text-slate-200">
-                      <span>{g}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGenre(g)}
-                        className="text-zinc-500 hover:text-rose-400 font-bold"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsManageOpen(false)}
-                  className="bg-zinc-800 hover:bg-zinc-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-lg transition"
-                >
-                  閉じる
-                </button>
+              </form>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {members.map((m) => (
+                  <div key={m} className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs text-slate-200">
+                    <span>{m}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMember(m)}
+                      className="text-zinc-500 hover:text-rose-400 font-bold"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
+
+            {/* ジャンル管理 */}
+            <div className="space-y-3 pt-4 border-t border-zinc-800">
+              <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">ジャンル管理</h3>
+              <form onSubmit={handleAddGenre} className="flex gap-2">
+                <input
+                  type="text"
+                  value={newGenreName}
+                  onChange={(e) => setNewGenreName(e.target.value)}
+                  placeholder="新しいジャンル名"
+                  className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <button
+                  type="submit"
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition"
+                >
+                  追加
+                </button>
+              </form>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {genres.map((g) => (
+                  <div key={g} className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs text-slate-200">
+                    <span>{g}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGenre(g)}
+                      className="text-zinc-500 hover:text-rose-400 font-bold"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsManageOpen(false)}
+                className="bg-zinc-800 hover:bg-zinc-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-lg transition"
+              >
+                閉じる
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </main>
   );
 }
