@@ -17,13 +17,20 @@ type Movie = {
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
 
-  // メンバーとジャンルも localStorage から読み込む
+  // メンバーの初期値を「ユウ」と「マリコ」に変更
   const [members, setMembers] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('members');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // もし旧データの「太郎」「花子」だけだったり、ユウだけだった場合のフォールバック
+        const defaultMembers = ['ユウ', 'マリコ'];
+        // 保存されているものとデフォルトを統合しつつ重複を排除
+        const combined = Array.from(new Set([...parsed, ...defaultMembers]));
+        return combined.filter(m => m !== '太郎' && m !== '花子'); // 太郎・花子は除外
+      }
     }
-    return ['ユウ'];
+    return ['ユウ', 'マリコ'];
   });
 
   const [genres, setGenres] = useState<string[]>(() => {
@@ -64,9 +71,9 @@ export default function Home() {
     return 'newest';
   });
 
-  // ページネーション用の状態（何ページ目か）
+  // ページネーション用の状態
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 5; // 1ページあたりの表示件数
+  const ITEMS_PER_PAGE = 5;
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -74,12 +81,10 @@ export default function Home() {
     fetchMovies();
   }, []);
 
-  // 検索キーワードやフィルターが変わったら、ページを1ページ目に戻す
   useEffect(() => {
     setCurrentPage(1);
   }, [searchKeyword, selectedMember, sortBy]);
 
-  // 各種状態が変更されたら localStorage に保存
   useEffect(() => {
     localStorage.setItem('searchKeyword', searchKeyword);
   }, [searchKeyword]);
@@ -299,7 +304,6 @@ export default function Home() {
     return 'bg-amber-950 text-amber-300 border border-amber-800';
   };
 
-  // 絞り込みと並び替えにヒットした全リスト
   const filteredAndSortedMovies = movies
     .filter((movie) => {
       if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
@@ -328,7 +332,6 @@ export default function Home() {
       return 0;
     });
 
-  // ページネーション計算（今何ページ目かによって切り出す）
   const totalPages = Math.ceil(filteredAndSortedMovies.length / ITEMS_PER_PAGE);
   const paginatedMovies = filteredAndSortedMovies.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -444,22 +447,21 @@ export default function Home() {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1">
-          評価 ({rating} / 5.0)
-        </label>
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              className={`text-2xl transition ${
-                star <= rating ? 'text-amber-400' : 'text-zinc-700'
-              }`}
-            >
-              ★
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-xs font-semibold text-slate-300">評価</label>
+          <span className="text-xs font-bold text-amber-400">★ {rating} / 5.0</span>
+        </div>
+        <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5">
+          <span className="text-sm">⭐</span>
+          <input
+            type="range"
+            min="0.5"
+            max="5.0"
+            step="0.5"
+            value={rating}
+            onChange={(e) => setRating(Number(e.target.value))}
+            className="w-full accent-amber-500 cursor-pointer"
+          />
         </div>
       </div>
 
@@ -791,7 +793,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* ページネーション（次へ・前へ）ボタン */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
               <button
@@ -997,7 +998,7 @@ export default function Home() {
                   type="submit"
                   className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition shadow"
                 >
-                  追加
+                  追加したメンバーも反映
                 </button>
               </form>
             </div>
