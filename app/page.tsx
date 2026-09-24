@@ -8,7 +8,7 @@ type Movie = {
   genre: string;
   status: string;
   watchedDate: string;
-  watcher: string;
+  watchers: string[]; // 複数選択に変更
   memo: string;
   imageUrl: string;
   rating: number;
@@ -29,7 +29,7 @@ export default function Home() {
   const [genre, setGenre] = useState('アクション');
   const [status, setStatus] = useState('観たい');
   const [watchedDate, setWatchedDate] = useState('');
-  const [watcher, setWatcher] = useState('太郎');
+  const [watchers, setWatchers] = useState<string[]>(['太郎']); // 複数の鑑賞者
   const [rating, setRating] = useState<number>(3.5);
   const [memo, setMemo] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -51,7 +51,12 @@ export default function Home() {
       const res = await fetch('/api/movies');
       if (res.ok) {
         const data = await res.json();
-        setMovies(data);
+        // 古いデータ（watcher単数）との互換性のため watchers 配列に変換するケア
+        const formattedData = data.map((m: any) => ({
+          ...m,
+          watchers: m.watchers || (m.watcher ? [m.watcher] : [members[0] || '太郎']),
+        }));
+        setMovies(formattedData);
       }
     } catch (e) {
       console.error('Failed to fetch movies', e);
@@ -78,7 +83,7 @@ export default function Home() {
       genre,
       status,
       watchedDate,
-      watcher,
+      watchers,
       memo,
       imageUrl,
       rating,
@@ -111,7 +116,11 @@ export default function Home() {
 
         if (res.ok) {
           const savedMovie = await res.json();
-          setMovies([savedMovie, ...movies]);
+          const formattedMovie = {
+            ...savedMovie,
+            watchers: savedMovie.watchers || watchers,
+          };
+          setMovies([formattedMovie, ...movies]);
           resetForm();
         }
       } catch (e) {
@@ -146,7 +155,7 @@ export default function Home() {
     setGenre(movie.genre);
     setStatus(movie.status);
     setWatchedDate(movie.watchedDate || '');
-    setWatcher(movie.watcher || members[0]);
+    setWatchers(movie.watchers && movie.watchers.length > 0 ? movie.watchers : [members[0] || '太郎']);
     setRating(movie.rating ?? 3.5);
     setMemo(movie.memo || '');
     setImageUrl(movie.imageUrl || '');
@@ -159,11 +168,24 @@ export default function Home() {
     setGenre(genres[0] || '');
     setStatus('観たい');
     setWatchedDate('');
-    setWatcher(members[0] || '');
+    setWatchers([members[0] || '']);
     setRating(3.5);
     setMemo('');
     setImageUrl('');
     setIsFormOpen(false);
+  };
+
+  const handleWatcherToggle = (member: string) => {
+    if (watchers.includes(member)) {
+      // 0人になるのを防ぐ場合はここでガード（お好みで。今回は最低1人保持）
+      if (watchers.length === 1) {
+        alert('鑑賞者は最低1人選択してください。');
+        return;
+      }
+      setWatchers(watchers.filter((w) => w !== member));
+    } else {
+      setWatchers([...watchers, member]);
+    }
   };
 
   const handleAddMember = (e: React.FormEvent) => {
@@ -180,7 +202,14 @@ export default function Home() {
       return;
     }
     setMembers(members.filter((m) => m !== target));
-    if (watcher === target) setWatcher(members.filter((m) => m !== target)[0]);
+    // 削除されたメンバーを各映画の watchers からも外す
+    setMovies(movies.map(m => ({
+      ...m,
+      watchers: m.watchers.filter(w => w !== target)
+    })));
+    if (watchers.includes(target)) {
+      setWatchers(watchers.filter(w => w !== target));
+    }
     if (selectedMember === target) setSelectedMember('全員');
   };
 
@@ -215,7 +244,7 @@ export default function Home() {
 
   const filteredAndSortedMovies = movies
     .filter((movie) => {
-      if (selectedMember !== '全員' && movie.watcher !== selectedMember) {
+      if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
         return false;
       }
       if (searchKeyword.trim()) {
@@ -223,7 +252,7 @@ export default function Home() {
         const matchTitle = movie.title.toLowerCase().includes(keyword);
         const matchGenre = movie.genre.toLowerCase().includes(keyword);
         const matchMemo = movie.memo.toLowerCase().includes(keyword);
-        const matchWatcher = movie.watcher.toLowerCase().includes(keyword);
+        const matchWatcher = movie.watchers?.some(w => w.toLowerCase().includes(keyword));
         if (!matchTitle && !matchGenre && !matchMemo && !matchWatcher) {
           return false;
         }
@@ -316,30 +345,36 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">視聴日</label>
-          <input
-            type="date"
-            value={watchedDate}
-            onChange={(e) => setWatchedDate(e.target.value)}
-            className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
-          />
-        </div>
+      <div>
+        <label className="block text-xs font-semibold text-slate-300 mb-1">視聴日</label>
+        <input
+          type="date"
+          value={watchedDate}
+          onChange={(e) => setWatchedDate(e.target.value)}
+          className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        />
+      </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">記録者</label>
-          <select
-            value={watcher}
-            onChange={(e) => setWatcher(e.target.value)}
-            className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
-          >
-            {members.map((m) => (
-              <option key={m} value={m} className="bg-zinc-900 text-slate-100">
-                {m}
-              </option>
-            ))}
-          </select>
+      <div>
+        <label className="block text-xs font-semibold text-slate-300 mb-1">鑑賞者 (複数選択可)</label>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {members.map((m) => {
+            const isSelected = watchers.includes(m);
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => handleWatcherToggle(m)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                  isSelected
+                    ? 'bg-amber-600 text-white border-amber-500 shadow'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                {isSelected ? `✓ ${m}` : m}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -521,7 +556,7 @@ export default function Home() {
               全員 ({movies.length})
             </button>
             {members.map((m) => {
-              const count = movies.filter((mv) => mv.watcher === m).length;
+              const count = movies.filter((mv) => mv.watchers?.includes(m)).length;
               return (
                 <button
                   key={m}
@@ -547,7 +582,7 @@ export default function Home() {
                 type="text"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="🔍 タイトル、ジャンル、メモなどで検索..."
+                placeholder="🔍 タイトル、ジャンル、鑑賞者、メモなどで検索..."
                 className="w-full border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-zinc-50 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-zinc-950"
               />
             </div>
@@ -634,17 +669,20 @@ export default function Home() {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400 mt-1.5">
-                        <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded font-medium text-slate-300">
-                          {movie.genre}
-                        </span>
-                        <span>•</span>
-                        <span>{movie.watcher}</span>
+                      {/* 鑑賞者・ジャンル情報（スマホ縦並び・PC横並び対応） */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-slate-400 mt-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded font-medium text-slate-300">
+                            {movie.genre}
+                          </span>
+                          <span className="hidden sm:inline">•</span>
+                          <span>鑑賞者: {movie.watchers?.join(', ')}</span>
+                        </div>
                         {movie.watchedDate && (
-                          <>
-                            <span>•</span>
-                            <span>{movie.watchedDate}</span>
-                          </>
+                          <div className="flex items-center gap-1.5">
+                            <span className="hidden sm:inline">•</span>
+                            <span>視聴日: {movie.watchedDate}</span>
+                          </div>
                         )}
                       </div>
 
@@ -733,7 +771,7 @@ export default function Home() {
 
               const matchedMovies = movies.filter((movie) => {
                 if (!movie.watchedDate) return false;
-                if (selectedMember !== '全員' && movie.watcher !== selectedMember) return false;
+                if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) return false;
                 return movie.watchedDate === dateString;
               });
 
@@ -864,6 +902,16 @@ export default function Home() {
                   追加
                 </button>
               </form>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsManageOpen(false)}
+                className="bg-zinc-800 hover:bg-zinc-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold transition"
+              >
+                閉じる
+              </button>
             </div>
           </div>
         </div>
