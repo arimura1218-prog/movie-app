@@ -8,7 +8,7 @@ type Movie = {
   genre: string;
   status: string;
   watchedDate: string;
-  watchers: string[]; // 複数選択
+  watchers: string[];
   memo: string;
   imageUrl: string;
   rating: number;
@@ -16,8 +16,23 @@ type Movie = {
 
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [members, setMembers] = useState<string[]>(['太郎', '花子']);
-  const [genres, setGenres] = useState<string[]>(['アクション', 'ドラマ', 'アニメ', 'コメディ']);
+
+  // メンバーとジャンルも localStorage から読み込む（初期値はユウさんなどにできます）
+  const [members, setMembers] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('members');
+      if (saved) return JSON.parse(saved);
+    }
+    return ['ユウ']; // 初期メンバー
+  });
+
+  const [genres, setGenres] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('genres');
+      if (saved) return JSON.parse(saved);
+    }
+    return ['アクション', 'ドラマ', 'アニメ', 'ラブコメディ']; // 初期ジャンル
+  });
 
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -26,17 +41,16 @@ export default function Home() {
   const [newGenreName, setNewGenreName] = useState('');
 
   const [title, setTitle] = useState('');
-  const [genre, setGenre] = useState('アクション');
+  const [genre, setGenre] = useState(genres[0] || 'アクション');
   const [status, setStatus] = useState('観たい');
   const [watchedDate, setWatchedDate] = useState('');
-  const [watchers, setWatchers] = useState<string[]>(['太郎']);
+  const [watchers, setWatchers] = useState<string[]>([]);
   const [rating, setRating] = useState<number>(3.5);
   const [memo, setMemo] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // 前回選んだ状態を復元できるように localStorage を使用
   const [searchKeyword, setSearchKeyword] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('searchKeyword') || '';
     return '';
@@ -56,7 +70,7 @@ export default function Home() {
     fetchMovies();
   }, []);
 
-  // 状態が変わるたびに localStorage に保存
+  // 各種状態が変更されたら localStorage に保存
   useEffect(() => {
     localStorage.setItem('searchKeyword', searchKeyword);
   }, [searchKeyword]);
@@ -69,6 +83,21 @@ export default function Home() {
     localStorage.setItem('sortBy', sortBy);
   }, [sortBy]);
 
+  useEffect(() => {
+    localStorage.setItem('members', JSON.stringify(members));
+  }, [members]);
+
+  useEffect(() => {
+    localStorage.setItem('genres', JSON.stringify(genres));
+  }, [genres]);
+
+  // 初回や鑑賞者が空のときのデフォルト調整
+  useEffect(() => {
+    if (watchers.length === 0 && members.length > 0) {
+      setWatchers([members[0]]);
+    }
+  }, [members]);
+
   const fetchMovies = async () => {
     try {
       const res = await fetch('/api/movies');
@@ -76,7 +105,7 @@ export default function Home() {
         const data = await res.json();
         const formattedData = data.map((m: any) => ({
           ...m,
-          watchers: m.watchers || (m.watcher ? [m.watcher] : [members[0] || '太郎']),
+          watchers: m.watchers || (m.watcher ? [m.watcher] : [members[0] || 'ユウ']),
         }));
         setMovies(formattedData);
       }
@@ -177,7 +206,7 @@ export default function Home() {
     setGenre(movie.genre);
     setStatus(movie.status);
     setWatchedDate(movie.watchedDate || '');
-    setWatchers(movie.watchers && movie.watchers.length > 0 ? movie.watchers : [members[0] || '太郎']);
+    setWatchers(movie.watchers && movie.watchers.length > 0 ? movie.watchers : [members[0] || 'ユウ']);
     setRating(movie.rating ?? 3.5);
     setMemo(movie.memo || '');
     setImageUrl(movie.imageUrl || '');
