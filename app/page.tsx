@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { searchTMDB, getTMDBImageUrl, TMDBResult } from '@/lib/tmdb';
 
 type Movie = {
   id: string;
@@ -56,6 +57,10 @@ export default function Home() {
   const [rating, setRating] = useState<number>(3.5);
   const [memo, setMemo] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+
+  // TMDB検索候補用ステート
+  const [tmdbResults, setTmdbResults] = useState<TMDBResult[]>([]);
+  const [isSearchingTMDB, setIsSearchingTMDB] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -141,6 +146,26 @@ export default function Home() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // TMDBを検索する関数
+  const handleSearchTMDB = async () => {
+    if (!title.trim()) return;
+    setIsSearchingTMDB(true);
+    const mediaType = category === 'ドラマ' ? 'tv' : 'movie';
+    const results = await searchTMDB(title, mediaType);
+    setTmdbResults(results);
+    setIsSearchingTMDB(false);
+  };
+
+  // 検索候補から選んだときの処理
+  const handleSelectTMDBResult = (result: TMDBResult) => {
+    const selectedTitle = result.title || result.name || '';
+    setTitle(selectedTitle);
+    if (result.poster_path) {
+      setImageUrl(getTMDBImageUrl(result.poster_path, 'w500'));
+    }
+    setTmdbResults([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -231,6 +256,7 @@ export default function Home() {
     setRating(movie.rating ?? 3.5);
     setMemo(movie.memo || '');
     setImageUrl(movie.imageUrl || '');
+    setTmdbResults([]);
     setIsFormOpen(true);
   };
 
@@ -245,6 +271,7 @@ export default function Home() {
     setRating(3.5);
     setMemo('');
     setImageUrl('');
+    setTmdbResults([]);
     setIsFormOpen(false);
   };
 
@@ -305,12 +332,6 @@ export default function Home() {
     if (st === '観た') return 'bg-[#7a4f43] text-white';
     if (st === '鑑賞中') return 'bg-[#5a6b5c] text-white';
     return 'bg-[#9c6644] text-white';
-  };
-
-  const getStatusTagStyle = (st: string) => {
-    if (st === '観た') return 'bg-[#f0e4df] text-[#7a4f43] border border-[#d4b5ad]';
-    if (st === '鑑賞中') return 'bg-[#e2e8e3] text-[#5a6b5c] border border-[#b8c7b9]';
-    return 'bg-[#f4ebe3] text-[#9c6644] border border-[#e0c9b7]';
   };
 
   // 統計カウンター用の計算（今年・今月の鑑賞本数）
@@ -473,14 +494,62 @@ export default function Home() {
 
       <div>
         <label className="block text-xs font-semibold text-[#5c5346] mb-1">タイトル</label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="作品名を入力"
-          required
-          className="w-full border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-[#fbf9f5] placeholder-[#a69e91] focus:outline-none focus:ring-2 focus:ring-[#a34743]"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="作品名を入力"
+            required
+            className="w-full border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-[#fbf9f5] placeholder-[#a69e91] focus:outline-none focus:ring-2 focus:ring-[#a34743]"
+          />
+          <button
+            type="button"
+            onClick={handleSearchTMDB}
+            className="bg-[#7a4f43] hover:bg-[#684238] text-white px-3 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap"
+          >
+            {isSearchingTMDB ? '検索中...' : 'TMDB検索'}
+          </button>
+        </div>
+
+        {/* TMDBの検索候補リスト表示 */}
+        {tmdbResults.length > 0 && (
+          <div className="mt-2 bg-white border border-[#d6cfc2] rounded-lg max-h-48 overflow-y-auto shadow-sm z-30 relative">
+            <div className="p-2 text-[10px] text-[#8c8273] border-b border-[#d6cfc2] flex justify-between items-center">
+              <span>ポスター画像を取得する作品を選択してください</span>
+              <button 
+                type="button" 
+                onClick={() => setTmdbResults([])}
+                className="text-[#a34743] hover:underline"
+              >
+                閉じる
+              </button>
+            </div>
+            {tmdbResults.map((item) => {
+              const itemTitle = item.title || item.name || '無題';
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => handleSelectTMDBResult(item)}
+                  className="flex items-center gap-3 p-2 hover:bg-[#f0ebe1] cursor-pointer border-b border-[#f0ebe1] last:border-b-0 transition"
+                >
+                  {item.poster_path ? (
+                    <img
+                      src={getTMDBImageUrl(item.poster_path, 'w92')}
+                      alt={itemTitle}
+                      className="w-8 h-12 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-8 h-12 bg-[#f0ebe1] rounded flex items-center justify-center text-xs">🎬</div>
+                  )}
+                  <div className="text-xs font-medium text-[#3d3832] truncate">
+                    {itemTitle}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -790,7 +859,6 @@ export default function Home() {
       <div className="flex-1 space-y-8 flex flex-col">
         {/* 画像風のステータスボード（今年・今月の鑑賞本数カウンター） */}
         <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-6 md:p-8 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between">
-          {/* 右上のアクセント丸（画像を模したデザイン） */}
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#e8dec5] rounded-full opacity-60 pointer-events-none"></div>
 
           <div className="flex items-center justify-between z-10 mb-4">
