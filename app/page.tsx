@@ -40,7 +40,6 @@ export default function Home() {
 
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  // カレンダー拡大用モーダルの開閉ステート
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
   const [newMemberName, setNewMemberName] = useState('');
@@ -305,13 +304,13 @@ export default function Home() {
     return 'bg-[#f4ebe3] text-[#9c6644] border border-[#e0c9b7]';
   };
 
-  // カレンダー用ロジック
+  // カレンダー用ロジック（型を明示してエラーを回避）
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDayIndex = new Date(year, month, 1).getDay();
   const lastDay = new Date(year, month + 1, 0).getDate();
 
-  const calendarDays = [];
+  const calendarDays: (number | null)[] = [];
   for (let i = 0; i < firstDayIndex; i++) {
     calendarDays.push(null);
   }
@@ -370,7 +369,6 @@ export default function Home() {
   );
 
   const handleJumpToMovie = (movie: Movie) => {
-    // モーダルが開いている場合は閉じる
     setIsCalendarModalOpen(false);
 
     if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
@@ -575,7 +573,6 @@ export default function Home() {
     </form>
   );
 
-  // カレンダー描画用の中身（通常＆拡大モーダル共通で使用）
   const renderCalendarContent = (isLarge = false) => {
     const heightClass = isLarge ? 'h-24 md:h-32' : 'h-16';
     const textClass = isLarge ? 'text-xs md:text-sm' : 'text-[10px]';
@@ -671,7 +668,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f4efe6] text-[#3d3832] p-4 md:p-8 flex flex-col md:flex-row gap-8 relative">
-      {/* 左カラム：PCではフォーム、スマホでも上部に配置 */}
       <div className="w-full md:w-1/3">
         <div className="md:hidden flex items-center justify-between bg-[#fbf9f5] border border-[#d6cfc2] p-4 rounded-2xl shadow-sm mb-4">
           <h1 className="text-base font-bold text-[#3d3832] flex items-center gap-1.5 whitespace-nowrap">
@@ -735,7 +731,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* 右カラム：メインの一覧エリア ＆ その下にカレンダーを配置 */}
       <div className="flex-1 space-y-8 flex flex-col">
         <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-4 md:p-6 rounded-2xl shadow-sm space-y-3">
           <div className="flex items-center justify-between">
@@ -987,7 +982,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* 映画一覧の下にあるカレンダー ＋ 「大きく見る」ボタン */}
         <div className="space-y-2">
           <div className="flex justify-end">
             <button
@@ -1004,7 +998,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* カレンダー拡大表示用モーダル */}
       {isCalendarModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-[#fbf9f5] border border-[#d6cfc2] rounded-3xl p-6 w-full max-w-2xl space-y-4 shadow-2xl relative">
@@ -1034,7 +1027,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* メンバー・ジャンル管理モーダル */}
       {isManageOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-[#fbf9f5] border border-[#d6cfc2] rounded-2xl p-6 w-full max-w-md space-y-6 shadow-xl">
@@ -1049,7 +1041,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* メンバー管理 */}
             <div className="space-y-3">
               <h3 className="text-xs font-semibold text-[#5c5346] uppercase tracking-wider">鑑賞メンバー管理</h3>
               <form onSubmit={handleAddMember} className="flex gap-2">
@@ -1083,7 +1074,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* ジャンル管理 */}
             <div className="space-y-3 pt-4 border-t border-[#d6cfc2]">
               <h3 className="text-xs font-semibold text-[#5c5346] uppercase tracking-wider">ジャンル管理</h3>
               <form onSubmit={handleAddGenre} className="flex gap-2">
