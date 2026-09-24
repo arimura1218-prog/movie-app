@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 type Movie = {
   id: string;
   title: string;
+  category: string; // '映画' または 'ドラマ'
   genre: string;
   status: string;
   watchedDate: string;
@@ -45,7 +46,9 @@ export default function Home() {
   const [newMemberName, setNewMemberName] = useState('');
   const [newGenreName, setNewGenreName] = useState('');
 
+  // フォーム用ステート
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('映画'); // '映画' または 'ドラマ'
   const [genre, setGenre] = useState(genres[0] || 'アクション');
   const [status, setStatus] = useState('観たい');
   const [watchedDate, setWatchedDate] = useState('');
@@ -56,6 +59,8 @@ export default function Home() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // フィルター・タブ用ステート（大分類：すべて / 映画 / ドラマ）
+  const [selectedCategory, setSelectedCategory] = useState('すべて');
   const [searchKeyword, setSearchKeyword] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('searchKeyword') || '';
     return '';
@@ -83,7 +88,7 @@ export default function Home() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchKeyword, selectedMember, sortBy]);
+  }, [searchKeyword, selectedMember, sortBy, selectedCategory]);
 
   useEffect(() => {
     localStorage.setItem('searchKeyword', searchKeyword);
@@ -118,6 +123,7 @@ export default function Home() {
         const data = await res.json();
         const formattedData = data.map((m: any) => ({
           ...m,
+          category: m.category || '映画', // 既存データにない場合はデフォルトで映画
           watchers: m.watchers || (m.watcher ? [m.watcher] : [members[0] || 'ユウ']),
         }));
         setMovies(formattedData);
@@ -144,6 +150,7 @@ export default function Home() {
 
     const movieData = {
       title,
+      category,
       genre,
       status,
       watchedDate,
@@ -182,6 +189,7 @@ export default function Home() {
           const savedMovie = await res.json();
           const formattedMovie = {
             ...savedMovie,
+            category: savedMovie.category || category,
             watchers: savedMovie.watchers || watchers,
           };
           setMovies([formattedMovie, ...movies]);
@@ -216,6 +224,7 @@ export default function Home() {
   const handleStartEdit = (movie: Movie) => {
     setEditingId(movie.id);
     setTitle(movie.title);
+    setCategory(movie.category || '映画');
     setGenre(movie.genre);
     setStatus(movie.status);
     setWatchedDate(movie.watchedDate || '');
@@ -229,6 +238,7 @@ export default function Home() {
   const resetForm = () => {
     setEditingId(null);
     setTitle('');
+    setCategory('映画');
     setGenre(genres[0] || '');
     setStatus('観たい');
     setWatchedDate('');
@@ -304,7 +314,7 @@ export default function Home() {
     return 'bg-[#f4ebe3] text-[#9c6644] border border-[#e0c9b7]';
   };
 
-  // カレンダー用ロジック（型を明示してエラーを回避）
+  // カレンダー用ロジック
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDayIndex = new Date(year, month, 1).getDay();
@@ -320,9 +330,15 @@ export default function Home() {
 
   const filteredAndSortedMovies = movies
     .filter((movie) => {
+      // 大分類フィルター（映画 / ドラマ）
+      if (selectedCategory !== 'support' && selectedCategory !== 'すべて' && movie.category !== selectedCategory) {
+        return false;
+      }
+      // メンバーフィルター
       if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
         return false;
       }
+      // キーワード検索
       if (searchKeyword.trim()) {
         const keyword = searchKeyword.toLowerCase();
         const matchTitle = movie.title.toLowerCase().includes(keyword);
@@ -371,6 +387,9 @@ export default function Home() {
   const handleJumpToMovie = (movie: Movie) => {
     setIsCalendarModalOpen(false);
 
+    if (selectedCategory !== 'すべて' && movie.category !== selectedCategory) {
+      setSelectedCategory('すべて');
+    }
     if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
       setSelectedMember('全員');
     }
@@ -413,6 +432,27 @@ export default function Home() {
             キャンセル
           </button>
         )}
+      </div>
+
+      {/* 大分類選択（映画 / ドラマ） */}
+      <div>
+        <label className="block text-xs font-semibold text-[#5c5346] mb-1">大分類</label>
+        <div className="grid grid-cols-2 gap-2">
+          {['映画', 'ドラマ'].map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategory(cat)}
+              className={`py-2 rounded-lg text-xs font-bold transition border ${
+                category === cat
+                  ? 'bg-[#7a4f43] text-white border-[#7a4f43] shadow-sm'
+                  : 'bg-[#fbf9f5] text-[#786e61] border-[#d6cfc2] hover:bg-[#f0ebe1]'
+              }`}
+            >
+              {cat === '映画' ? '🎬 映画' : '📺 ドラマ'}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div>
@@ -567,7 +607,7 @@ export default function Home() {
           type="submit"
           className="w-full font-semibold py-2.5 rounded-lg transition text-sm shadow-sm text-white bg-[#7a4f43] hover:bg-[#684238]"
         >
-          映画を追加
+          作品を追加
         </button>
       )}
     </form>
@@ -671,7 +711,7 @@ export default function Home() {
       <div className="w-full md:w-1/3">
         <div className="md:hidden flex items-center justify-between bg-[#fbf9f5] border border-[#d6cfc2] p-4 rounded-2xl shadow-sm mb-4">
           <h1 className="text-base font-bold text-[#3d3832] flex items-center gap-1.5 whitespace-nowrap">
-            🎬 映画記録
+            🎬 作品記録
           </h1>
           <div className="flex gap-2">
             <button
@@ -697,7 +737,7 @@ export default function Home() {
         <div className="hidden md:block bg-[#fbf9f5] border border-[#d6cfc2] p-6 rounded-2xl shadow-sm space-y-6">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-base lg:text-lg font-bold text-[#3d3832] flex items-center gap-1.5 whitespace-nowrap">
-              🎬 映画記録
+              🎬 作品記録
             </h1>
             <button
               type="button"
@@ -732,11 +772,28 @@ export default function Home() {
       </div>
 
       <div className="flex-1 space-y-8 flex flex-col">
-        <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-4 md:p-6 rounded-2xl shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-[#8c8273] uppercase tracking-wider">
-              表示メンバー
-            </label>
+        {/* 大分類（すべて・映画・ドラマ）切り替えタブ ＆ メンバー選択 */}
+        <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-4 md:p-6 rounded-2xl shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-[#d6cfc2] pb-3">
+            <div className="flex gap-2">
+              {['すべて', '映画', 'ドラマ'].map((cat) => {
+                const count = cat === 'すべて' ? movies.length : movies.filter(m => m.category === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition shadow-sm ${
+                      selectedCategory === cat
+                        ? 'bg-[#7a4f43] text-white'
+                        : 'bg-[#f0ebe1] text-[#5c5346] hover:bg-[#e4dcd0]'
+                    }`}
+                  >
+                    {cat === '映画' ? '🎬 映画' : cat === 'ドラマ' ? '📺 ドラマ' : '📁 すべて'} ({count})
+                  </button>
+                );
+              })}
+            </div>
             <div className="hidden md:block">
               <button
                 type="button"
@@ -747,35 +804,41 @@ export default function Home() {
               </button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedMember('全員')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                selectedMember === '全員'
-                  ? 'bg-[#7a4f43] text-white shadow-sm'
-                  : 'bg-[#f0ebe1] text-[#5c5346] hover:bg-[#e4dcd0]'
-              }`}
-            >
-              全員 ({movies.length})
-            </button>
-            {members.map((m) => {
-              const count = movies.filter((mv) => mv.watchers?.includes(m)).length;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setSelectedMember(m)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                    selectedMember === m
-                      ? 'bg-[#7a4f43] text-white shadow-sm'
-                      : 'bg-[#f0ebe1] text-[#5c5346] hover:bg-[#e4dcd0]'
-                  }`}
-                >
-                  {m} ({count})
-                </button>
-              );
-            })}
+
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-[#8c8273] uppercase tracking-wider">
+              表示メンバー
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedMember('全員')}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                  selectedMember === '全員'
+                    ? 'bg-[#7a4f43] text-white shadow-sm'
+                    : 'bg-[#f0ebe1] text-[#5c5346] hover:bg-[#e4dcd0]'
+                }`}
+              >
+                全員
+              </button>
+              {members.map((m) => {
+                const count = movies.filter((mv) => mv.watchers?.includes(m)).length;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setSelectedMember(m)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                      selectedMember === m
+                        ? 'bg-[#7a4f43] text-white shadow-sm'
+                        : 'bg-[#f0ebe1] text-[#5c5346] hover:bg-[#e4dcd0]'
+                    }`}
+                  >
+                    {m} ({count})
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -810,7 +873,7 @@ export default function Home() {
 
           <div className="flex items-center justify-between border-b border-[#d6cfc2] pb-3">
             <div className="text-sm font-bold text-[#3d3832]">
-              {selectedMember}の登録リスト ({filteredAndSortedMovies.length}件中)
+              {selectedCategory} / {selectedMember}の登録リスト ({filteredAndSortedMovies.length}件中)
             </div>
             {filteredAndSortedMovies.length > 0 && (
               <div className="text-xs text-[#8c8273]">
@@ -821,7 +884,7 @@ export default function Home() {
 
           {paginatedMovies.length === 0 ? (
             <div className="text-center py-12 text-[#8c8273] text-sm">
-              該当する映画・ドラマはまだありません。
+              該当する作品はまだありません。
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -849,7 +912,10 @@ export default function Home() {
                           alt={movie.title}
                           className="relative z-10 w-full h-full object-contain drop-shadow-sm"
                         />
-                        <div className="absolute top-3 right-3 z-20">
+                        <div className="absolute top-3 right-3 z-20 flex gap-1.5">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#3d3832] text-white shadow-sm">
+                            {movie.category || '映画'}
+                          </span>
                           <span
                             className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${getStatusBadgeStyle(
                               movie.status
@@ -862,7 +928,10 @@ export default function Home() {
                     ) : (
                       <div className="w-full h-40 bg-[#f0ebe1] flex items-center justify-center text-[#a69e91] relative">
                         <span className="text-4xl">🎬</span>
-                        <div className="absolute top-3 right-3">
+                        <div className="absolute top-3 right-3 flex gap-1.5">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#3d3832] text-white shadow-sm">
+                            {movie.category || '映画'}
+                          </span>
                           <span
                             className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${getStatusBadgeStyle(
                               movie.status
@@ -880,15 +949,6 @@ export default function Home() {
                           <h3 className="font-bold text-[#3d3832] text-base leading-snug line-clamp-1">
                             {movie.title}
                           </h3>
-                          {!movie.imageUrl && (
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusTagStyle(
-                                movie.status
-                              )}`}
-                            >
-                              {movie.status}
-                            </span>
-                          )}
                         </div>
 
                         <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-[#786e61] mt-1.5">
