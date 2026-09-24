@@ -17,7 +17,7 @@ type Movie = {
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
 
-  // メンバーとジャンルも localStorage から読み込む（初期値はユウさんなどにできます）
+  // メンバーとジャンルも localStorage から読み込む
   const [members, setMembers] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('members');
@@ -747,9 +747,9 @@ export default function Home() {
                       </div>
 
                       {movie.memo && (
-                        <p className="text-xs text-slate-300 bg-zinc-900 border border-zinc-800/60 p-2.5 rounded-lg mt-2.5 line-clamp-2">
+                        <div className="text-xs text-slate-300 bg-zinc-900 border border-zinc-800/60 p-2.5 rounded-lg mt-2.5 max-h-24 overflow-y-auto whitespace-pre-wrap break-words">
                           {movie.memo}
-                        </p>
+                        </div>
                       )}
                     </div>
 
@@ -924,7 +924,7 @@ export default function Home() {
                     key={g}
                     className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200"
                   >
-                    <span>{g}</span>
+                    <span><span>{g}</span></span>
                     <button
                       type="button"
                       onClick={() => handleRemoveGenre(g)}
