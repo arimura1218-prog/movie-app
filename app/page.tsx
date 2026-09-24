@@ -40,6 +40,8 @@ export default function Home() {
 
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  // カレンダー拡大用モーダルの開閉ステート
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
   const [newMemberName, setNewMemberName] = useState('');
   const [newGenreName, setNewGenreName] = useState('');
@@ -73,9 +75,7 @@ export default function Home() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // ハイライト中の映画IDを管理するステート
   const [highlightedMovieId, setHighlightedMovieId] = useState<string | null>(null);
-  // 各カードのDOM参照を保持するRef
   const movieCardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
@@ -294,15 +294,15 @@ export default function Home() {
   };
 
   const getStatusBadgeStyle = (st: string) => {
-    if (st === '観た') return 'bg-emerald-600 text-white';
-    if (st === '鑑賞中') return 'bg-purple-600 text-white';
-    return 'bg-amber-600 text-white';
+    if (st === '観た') return 'bg-[#7a4f43] text-white';
+    if (st === '鑑賞中') return 'bg-[#5a6b5c] text-white';
+    return 'bg-[#9c6644] text-white';
   };
 
   const getStatusTagStyle = (st: string) => {
-    if (st === '観た') return 'bg-emerald-950 text-emerald-300 border border-emerald-800';
-    if (st === '鑑賞中') return 'bg-purple-950 text-purple-300 border border-purple-800';
-    return 'bg-amber-950 text-amber-300 border border-amber-800';
+    if (st === '観た') return 'bg-[#f0e4df] text-[#7a4f43] border border-[#d4b5ad]';
+    if (st === '鑑賞中') return 'bg-[#e2e8e3] text-[#5a6b5c] border border-[#b8c7b9]';
+    return 'bg-[#f4ebe3] text-[#9c6644] border border-[#e0c9b7]';
   };
 
   // カレンダー用ロジック
@@ -369,8 +369,10 @@ export default function Home() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // カレンダーのポスター画像をクリックした時の処理（該当カードへスクロール＆ハイライト）
   const handleJumpToMovie = (movie: Movie) => {
+    // モーダルが開いている場合は閉じる
+    setIsCalendarModalOpen(false);
+
     if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
       setSelectedMember('全員');
     }
@@ -401,14 +403,14 @@ export default function Home() {
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-slate-100 text-base">
+        <h2 className="font-bold text-[#3d3832] text-base">
           {editingId ? '✏️ 作品を編集中' : '新規作品を登録'}
         </h2>
         {editingId && (
           <button
             type="button"
             onClick={resetForm}
-            className="text-xs text-rose-400 hover:underline font-medium"
+            className="text-xs text-[#a34743] hover:underline font-medium"
           >
             キャンセル
           </button>
@@ -416,27 +418,27 @@ export default function Home() {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1">タイトル</label>
+        <label className="block text-xs font-semibold text-[#5c5346] mb-1">タイトル</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="作品名を入力"
           required
-          className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-900 placeholder-zinc-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-[#fbf9f5] placeholder-[#a69e91] focus:outline-none focus:ring-2 focus:ring-[#a34743]"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">ジャンル</label>
+          <label className="block text-xs font-semibold text-[#5c5346] mb-1">ジャンル</label>
           <select
             value={genre}
             onChange={(e) => setGenre(e.target.value)}
-            className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-[#a34743]"
           >
             {genres.map((g) => (
-              <option key={g} value={g} className="bg-zinc-900 text-slate-100">
+              <option key={g} value={g} className="bg-[#fbf9f5] text-[#3d3832]">
                 {g}
               </option>
             ))}
@@ -444,31 +446,31 @@ export default function Home() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">ステータス</label>
+          <label className="block text-xs font-semibold text-[#5c5346] mb-1">ステータス</label>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-[#a34743]"
           >
-            <option value="観たい" className="bg-zinc-900 text-slate-100">観たい</option>
-            <option value="鑑賞中" className="bg-zinc-900 text-slate-100">鑑賞中</option>
-            <option value="観た" className="bg-zinc-900 text-slate-100">観た</option>
+            <option value="観たい" className="bg-[#fbf9f5] text-[#3d3832]">観たい</option>
+            <option value="鑑賞中" className="bg-[#fbf9f5] text-[#3d3832]">鑑賞中</option>
+            <option value="観た" className="bg-[#fbf9f5] text-[#3d3832]">観た</option>
           </select>
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1">鑑賞日</label>
+        <label className="block text-xs font-semibold text-[#5c5346] mb-1">鑑賞日</label>
         <input
           type="date"
           value={watchedDate}
           onChange={(e) => setWatchedDate(e.target.value)}
-          className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-[#fbf9f5] focus:outline-none focus:ring-2 focus:ring-[#a34743]"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1">鑑賞者 (複数選択可)</label>
+        <label className="block text-xs font-semibold text-[#5c5346] mb-1">鑑賞者 (複数選択可)</label>
         <div className="flex flex-wrap gap-2 pt-1">
           {members.map((m) => {
             const isSelected = watchers.includes(m);
@@ -479,8 +481,8 @@ export default function Home() {
                 onClick={() => handleWatcherToggle(m)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                   isSelected
-                    ? 'bg-amber-600 text-white border-amber-500 shadow'
-                    : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:bg-zinc-800'
+                    ? 'bg-[#7a4f43] text-white border-[#7a4f43] shadow-sm'
+                    : 'bg-[#fbf9f5] text-[#786e61] border-[#d6cfc2] hover:bg-[#f0ebe1]'
                 }`}
               >
                 {isSelected ? `✓ ${m}` : m}
@@ -492,10 +494,10 @@ export default function Home() {
 
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-xs font-semibold text-slate-300">評価</label>
-          <span className="text-xs font-bold text-amber-400">★ {rating} / 5.0</span>
+          <label className="text-xs font-semibold text-[#5c5346]">評価</label>
+          <span className="text-xs font-bold text-[#a34743]">★ {rating} / 5.0</span>
         </div>
-        <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5">
+        <div className="flex items-center gap-3 bg-[#fbf9f5] border border-[#d6cfc2] rounded-lg px-3 py-2.5">
           <span className="text-sm">⭐</span>
           <input
             type="range"
@@ -504,45 +506,45 @@ export default function Home() {
             step="0.5"
             value={rating}
             onChange={(e) => setRating(Number(e.target.value))}
-            className="w-full accent-amber-500 cursor-pointer"
+            className="w-full accent-[#a34743] cursor-pointer"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1">ポスター画像</label>
+        <label className="block text-xs font-semibold text-[#5c5346] mb-1">ポスター画像</label>
         <div className="flex items-center gap-3">
           <input
             type="file"
             accept="image/*"
             onChange={handleImageChange}
-            className="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-zinc-800 file:text-amber-400 hover:file:bg-zinc-700 cursor-pointer"
+            className="w-full text-xs text-[#5c5346] file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#f0ebe1] file:text-[#7a4f43] hover:file:bg-[#e4dcd0] cursor-pointer"
           />
           {imageUrl && (
             <button
               type="button"
               onClick={() => setImageUrl('')}
-              className="text-xs text-rose-400 hover:underline whitespace-nowrap font-medium"
+              className="text-xs text-[#a34743] hover:underline whitespace-nowrap font-medium"
             >
               画像削除
             </button>
           )}
         </div>
         {imageUrl && (
-          <div className="mt-2 relative w-full h-40 bg-zinc-950 rounded-lg overflow-hidden border border-zinc-800 shadow-sm flex items-center justify-center">
+          <div className="mt-2 relative w-full h-40 bg-[#fbf9f5] rounded-lg overflow-hidden border border-[#d6cfc2] shadow-sm flex items-center justify-center">
             <img src={imageUrl} alt="プレビュー" className="w-full h-full object-contain" />
           </div>
         )}
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1">メモ・感想</label>
+        <label className="block text-xs font-semibold text-[#5c5346] mb-1">メモ・感想</label>
         <textarea
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           placeholder="感想を入力..."
           rows={3}
-          className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-900 placeholder-zinc-50 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+          className="w-full border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-[#fbf9f5] placeholder-[#a69e91] focus:outline-none focus:ring-2 focus:ring-[#a34743] resize-none"
         />
       </div>
 
@@ -550,14 +552,14 @@ export default function Home() {
         <div className="flex gap-2 pt-2">
           <button
             type="submit"
-            className="flex-1 font-semibold py-2.5 rounded-lg transition text-sm shadow text-white bg-emerald-600 hover:bg-emerald-700"
+            className="flex-1 font-semibold py-2.5 rounded-lg transition text-sm shadow-sm text-white bg-[#5a6b5c] hover:bg-[#4b594d]"
           >
             変更を保存する
           </button>
           <button
             type="button"
             onClick={handleDelete}
-            className="px-4 font-semibold py-2.5 rounded-lg transition text-sm shadow text-white bg-rose-600 hover:bg-rose-700"
+            className="px-4 font-semibold py-2.5 rounded-lg transition text-sm shadow-sm text-white bg-[#a34743] hover:bg-[#8e3c39]"
           >
             削除
           </button>
@@ -565,7 +567,7 @@ export default function Home() {
       ) : (
         <button
           type="submit"
-          className="w-full font-semibold py-2.5 rounded-lg transition text-sm shadow text-white bg-amber-600 hover:bg-amber-700"
+          className="w-full font-semibold py-2.5 rounded-lg transition text-sm shadow-sm text-white bg-[#7a4f43] hover:bg-[#684238]"
         >
           映画を追加
         </button>
@@ -573,103 +575,106 @@ export default function Home() {
     </form>
   );
 
-  // カレンダーウィジェット（日付の数字マスにポスター画像を配置）
-  const calendarWidget = (
-    <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-md space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
-          📅 鑑賞カレンダー
-        </h2>
-        <div className="flex items-center gap-1 text-xs font-semibold text-slate-300">
-          <button
-            type="button"
-            onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-            className="p-1 hover:bg-zinc-800 rounded transition"
-          >
-            ◀
-          </button>
-          <span className="min-w-[70px] text-center">
-            {year}年{month + 1}月
-          </span>
-          <button
-            type="button"
-            onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-            className="p-1 hover:bg-zinc-800 rounded transition"
-          >
-            ▶
-          </button>
+  // カレンダー描画用の中身（通常＆拡大モーダル共通で使用）
+  const renderCalendarContent = (isLarge = false) => {
+    const heightClass = isLarge ? 'h-24 md:h-32' : 'h-16';
+    const textClass = isLarge ? 'text-xs md:text-sm' : 'text-[10px]';
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#3d3832] flex items-center gap-1.5">
+            📅 鑑賞カレンダー
+          </h2>
+          <div className="flex items-center gap-1 text-xs font-semibold text-[#5c5346]">
+            <button
+              type="button"
+              onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+              className="p-1 hover:bg-[#f0ebe1] rounded transition"
+            >
+              ◀
+            </button>
+            <span className="min-w-[70px] text-center font-bold">
+              {year}年{month + 1}月
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+              className="p-1 hover:bg-[#f0ebe1] rounded transition"
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8c8273] pb-1 border-b border-[#d6cfc2]">
+          <span className="text-[#a34743]">日</span>
+          <span>月</span>
+          <span>火</span>
+          <span>水</span>
+          <span>木</span>
+          <span>金</span>
+          <span className="text-[#4a6b82]">土</span>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5">
+          {calendarDays.map((d, i) => {
+            if (d === null) {
+              return <div key={`empty-${i}`} className={`${heightClass} bg-[#f0ebe1]/30 rounded-lg`}></div>;
+            }
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayMovies = movies.filter((m) => m.watchedDate === dateStr);
+            const hasWatched = dayMovies.length > 0;
+            const movie = hasWatched ? dayMovies[0] : null;
+
+            return (
+              <div
+                key={`day-${d}`}
+                className={`${heightClass} flex flex-col items-center justify-between p-1 rounded-lg border relative overflow-hidden ${textClass} ${
+                  hasWatched 
+                    ? 'bg-white border-[#d4b5ad] shadow-sm' 
+                    : 'bg-[#f4efe6] border-[#d6cfc2] text-[#8c8273]'
+                }`}
+              >
+                <span className={`self-start font-mono leading-none z-10 ${hasWatched ? 'text-[#a34743] font-bold bg-white/90 px-1 rounded' : 'text-[#8c8273]'}`}>
+                  {d}
+                </span>
+
+                {movie && movie.imageUrl ? (
+                  <div 
+                    onClick={() => handleJumpToMovie(movie)}
+                    className="absolute inset-0 pt-4 cursor-pointer group flex items-center justify-center"
+                    title={`${movie.title} (クリックでジャンプ)`}
+                  >
+                    <img 
+                      src={movie.imageUrl} 
+                      alt={movie.title} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition" 
+                    />
+                  </div>
+                ) : movie ? (
+                  <div 
+                    onClick={() => handleJumpToMovie(movie)}
+                    className="absolute inset-0 pt-4 cursor-pointer flex items-center justify-center text-[10px] text-[#7a4f43] text-center px-0.5 overflow-hidden font-medium bg-[#f0e4df]/70"
+                    title={`${movie.title} (クリックでジャンプ)`}
+                  >
+                    {movie.title}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </div>
-
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 pb-1 border-b border-zinc-800">
-        <span className="text-rose-400">日</span>
-        <span>月</span>
-        <span>火</span>
-        <span>水</span>
-        <span>木</span>
-        <span>金</span>
-        <span className="text-sky-400">土</span>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1.5">
-        {calendarDays.map((d, i) => {
-          if (d === null) {
-            return <div key={`empty-${i}`} className="h-16 bg-zinc-950/30 rounded-lg"></div>;
-          }
-          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-          const dayMovies = movies.filter((m) => m.watchedDate === dateStr);
-          const hasWatched = dayMovies.length > 0;
-          const movie = hasWatched ? dayMovies[0] : null; // その日の最初の映画
-
-          return (
-            <div
-              key={`day-${d}`}
-              className={`h-16 flex flex-col items-center justify-between p-1 rounded-lg border relative overflow-hidden text-[10px] ${
-                hasWatched 
-                  ? 'bg-zinc-950 border-amber-600/60 shadow-sm' 
-                  : 'bg-zinc-950/60 border-zinc-800/80 text-slate-400'
-              }`}
-            >
-              {/* 日付の数字を左上に小さく表示 */}
-              <span className={`self-start font-mono leading-none z-10 ${hasWatched ? 'text-amber-400 font-bold bg-zinc-950/80 px-1 rounded' : 'text-slate-500'}`}>
-                {d}
-              </span>
-
-              {/* マスの中にポスター画像を配置（クリックでジャンプ） */}
-              {movie && movie.imageUrl ? (
-                <div 
-                  onClick={() => handleJumpToMovie(movie)}
-                  className="absolute inset-0 pt-4 cursor-pointer group flex items-center justify-center"
-                  title={`${movie.title} (クリックでジャンプ)`}
-                >
-                  <img 
-                    src={movie.imageUrl} 
-                    alt={movie.title} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition" 
-                  />
-                </div>
-              ) : movie ? (
-                <div 
-                  onClick={() => handleJumpToMovie(movie)}
-                  className="absolute inset-0 pt-4 cursor-pointer flex items-center justify-center text-[10px] text-amber-200 text-center px-0.5 overflow-hidden font-medium bg-amber-950/40"
-                  title={`${movie.title} (クリックでジャンプ)`}
-                >
-                  {movie.title}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-8 relative">
+    <main className="min-h-screen bg-[#f4efe6] text-[#3d3832] p-4 md:p-8 flex flex-col md:flex-row gap-8 relative">
       {/* 左カラム：PCではフォーム、スマホでも上部に配置 */}
       <div className="w-full md:w-1/3">
-        <div className="md:hidden flex items-center justify-between bg-zinc-900 border border-zinc-800 p-4 rounded-2xl shadow-md mb-4">
-          <h1 className="text-base font-bold text-slate-100 flex items-center gap-1.5 whitespace-nowrap">
+        <div className="md:hidden flex items-center justify-between bg-[#fbf9f5] border border-[#d6cfc2] p-4 rounded-2xl shadow-sm mb-4">
+          <h1 className="text-base font-bold text-[#3d3832] flex items-center gap-1.5 whitespace-nowrap">
             🎬 映画記録
           </h1>
           <div className="flex gap-2">
@@ -679,29 +684,29 @@ export default function Home() {
                 resetForm();
                 setIsFormOpen(true);
               }}
-              className="bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl shadow transition flex items-center gap-1"
+              className="bg-[#7a4f43] text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm transition flex items-center gap-1"
             >
               ➕ 追加
             </button>
             <button
               type="button"
               onClick={() => setIsManageOpen(true)}
-              className="bg-zinc-800 text-slate-200 text-xs font-bold px-3 py-2 rounded-xl shadow transition"
+              className="bg-[#f0ebe1] text-[#3d3832] text-xs font-bold px-3 py-2 rounded-xl shadow-sm transition"
             >
               ⚙️ 管理
             </button>
           </div>
         </div>
 
-        <div className="hidden md:block bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-md space-y-6">
+        <div className="hidden md:block bg-[#fbf9f5] border border-[#d6cfc2] p-6 rounded-2xl shadow-sm space-y-6">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-base lg:text-lg font-bold text-slate-100 flex items-center gap-1.5 whitespace-nowrap">
+            <h1 className="text-base lg:text-lg font-bold text-[#3d3832] flex items-center gap-1.5 whitespace-nowrap">
               🎬 映画記録
             </h1>
             <button
               type="button"
               onClick={() => setIsManageOpen(true)}
-              className="text-xs bg-zinc-800 hover:bg-zinc-700 text-slate-200 px-2.5 py-1.5 rounded-lg font-medium transition whitespace-nowrap"
+              className="text-xs bg-[#f0ebe1] hover:bg-[#e4dcd0] text-[#3d3832] px-2.5 py-1.5 rounded-lg font-medium transition whitespace-nowrap"
             >
               ⚙️ 管理
             </button>
@@ -710,16 +715,16 @@ export default function Home() {
         </div>
 
         {isFormOpen && (
-          <div className="md:hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                <h2 className="font-bold text-slate-100 text-base">
+          <div className="md:hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-[#fbf9f5] border border-[#d6cfc2] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-[#d6cfc2] pb-2">
+                <h2 className="font-bold text-[#3d3832] text-base">
                   {editingId ? '✏️ 作品を編集' : '新規作品を登録'}
                 </h2>
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="text-zinc-400 hover:text-slate-200 text-lg font-bold"
+                  className="text-[#8c8273] hover:text-[#3d3832] text-lg font-bold"
                 >
                   ✕
                 </button>
@@ -732,16 +737,16 @@ export default function Home() {
 
       {/* 右カラム：メインの一覧エリア ＆ その下にカレンダーを配置 */}
       <div className="flex-1 space-y-8 flex flex-col">
-        <div className="bg-zinc-900 border border-zinc-800 p-4 md:p-6 rounded-2xl shadow-md space-y-3">
+        <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-4 md:p-6 rounded-2xl shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-[#8c8273] uppercase tracking-wider">
               表示メンバー
             </label>
             <div className="hidden md:block">
               <button
                 type="button"
                 onClick={() => setIsManageOpen(true)}
-                className="text-xs text-amber-400 hover:underline font-medium"
+                className="text-xs text-[#a34743] hover:underline font-medium"
               >
                 + メンバー・ジャンル追加
               </button>
@@ -753,8 +758,8 @@ export default function Home() {
               onClick={() => setSelectedMember('全員')}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
                 selectedMember === '全員'
-                  ? 'bg-amber-600 text-white shadow'
-                  : 'bg-zinc-800 text-slate-300 hover:bg-zinc-700'
+                  ? 'bg-[#7a4f43] text-white shadow-sm'
+                  : 'bg-[#f0ebe1] text-[#5c5346] hover:bg-[#e4dcd0]'
               }`}
             >
               全員 ({movies.length})
@@ -768,8 +773,8 @@ export default function Home() {
                   onClick={() => setSelectedMember(m)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
                     selectedMember === m
-                      ? 'bg-amber-600 text-white shadow'
-                      : 'bg-zinc-800 text-slate-300 hover:bg-zinc-700'
+                      ? 'bg-[#7a4f43] text-white shadow-sm'
+                      : 'bg-[#f0ebe1] text-[#5c5346] hover:bg-[#e4dcd0]'
                   }`}
                 >
                   {m} ({count})
@@ -779,7 +784,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-md space-y-6">
+        <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-6 rounded-2xl shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="w-full sm:w-2/3">
               <input
@@ -787,40 +792,40 @@ export default function Home() {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="🔍 タイトル、ジャンル、鑑賞者、メモなどで検索..."
-                className="w-full border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-zinc-50 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-zinc-950"
+                className="w-full border border-[#d6cfc2] rounded-lg px-4 py-2.5 text-sm text-[#3d3832] placeholder-[#a69e91] focus:outline-none focus:ring-2 focus:ring-[#a34743] bg-white"
               />
             </div>
 
             <div className="w-full sm:w-auto flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-300 whitespace-nowrap">並び替え:</span>
+              <span className="text-xs font-semibold text-[#5c5346] whitespace-nowrap">並び替え:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full sm:w-auto border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full sm:w-auto border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-white focus:outline-none focus:ring-2 focus:ring-[#a34743]"
               >
-                <option value="newest" className="bg-zinc-900 text-slate-100">登録が新しい順</option>
-                <option value="statusOrder" className="bg-zinc-900 text-slate-100">ステータス順 (観たい→鑑賞中→観た)</option>
-                <option value="watchedDateDesc" className="bg-zinc-900 text-slate-100">鑑賞日が新しい順</option>
-                <option value="watchedDateAsc" className="bg-zinc-900 text-slate-100">鑑賞日が古い順</option>
-                <option value="ratingDesc" className="bg-zinc-900 text-slate-100">評価が高い順</option>
-                <option value="titleAsc" className="bg-zinc-900 text-slate-100">タイトル順 (五十音)</option>
+                <option value="newest" className="bg-white text-[#3d3832]">登録が新しい順</option>
+                <option value="statusOrder" className="bg-white text-[#3d3832]">ステータス順 (観たい→鑑賞中→観た)</option>
+                <option value="watchedDateDesc" className="bg-white text-[#3d3832]">鑑賞日が新しい順</option>
+                <option value="watchedDateAsc" className="bg-white text-[#3d3832]">鑑賞日が古い順</option>
+                <option value="ratingDesc" className="bg-white text-[#3d3832]">評価が高い順</option>
+                <option value="titleAsc" className="bg-white text-[#3d3832]">タイトル順 (五十音)</option>
               </select>
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-            <div className="text-sm font-bold text-slate-200">
+          <div className="flex items-center justify-between border-b border-[#d6cfc2] pb-3">
+            <div className="text-sm font-bold text-[#3d3832]">
               {selectedMember}の登録リスト ({filteredAndSortedMovies.length}件中)
             </div>
             {filteredAndSortedMovies.length > 0 && (
-              <div className="text-xs text-zinc-400">
+              <div className="text-xs text-[#8c8273]">
                 {currentPage} / {totalPages || 1} ページ
               </div>
             )}
           </div>
 
           {paginatedMovies.length === 0 ? (
-            <div className="text-center py-12 text-zinc-500 text-sm">
+            <div className="text-center py-12 text-[#8c8273] text-sm">
               該当する映画・ドラマはまだありません。
             </div>
           ) : (
@@ -832,26 +837,26 @@ export default function Home() {
                   <div
                     key={movie.id}
                     ref={(el) => { movieCardRefs.current[movie.id] = el; }}
-                    className={`border rounded-2xl overflow-hidden shadow-sm transition flex flex-col bg-zinc-950 group ${
+                    className={`border rounded-2xl overflow-hidden shadow-sm transition flex flex-col bg-white group ${
                       isHighlighted 
-                        ? 'border-amber-400 ring-4 ring-amber-500/40 scale-[1.02] duration-300' 
-                        : 'border-zinc-800 hover:shadow-lg hover:border-zinc-700'
+                        ? 'border-[#a34743] ring-4 ring-[#a34743]/30 scale-[1.02] duration-300' 
+                        : 'border-[#d6cfc2] hover:shadow-md hover:border-[#b8af9f]'
                     }`}
                   >
                     {movie.imageUrl ? (
-                      <div className="w-full h-64 bg-zinc-900 relative overflow-hidden flex items-center justify-center">
+                      <div className="w-full h-64 bg-[#f0ebe1] relative overflow-hidden flex items-center justify-center">
                         <div
-                          className="absolute inset-0 bg-cover bg-center filter blur-md opacity-30 scale-110"
+                          className="absolute inset-0 bg-cover bg-center filter blur-md opacity-20 scale-110"
                           style={{ backgroundImage: `url(${movie.imageUrl})` }}
                         ></div>
                         <img
                           src={movie.imageUrl}
                           alt={movie.title}
-                          className="relative z-10 w-full h-full object-contain drop-shadow-md"
+                          className="relative z-10 w-full h-full object-contain drop-shadow-sm"
                         />
                         <div className="absolute top-3 right-3 z-20">
                           <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-md ${getStatusBadgeStyle(
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${getStatusBadgeStyle(
                               movie.status
                             )}`}
                           >
@@ -860,11 +865,11 @@ export default function Home() {
                         </div>
                       </div>
                     ) : (
-                      <div className="w-full h-40 bg-zinc-900 flex items-center justify-center text-zinc-600 relative">
+                      <div className="w-full h-40 bg-[#f0ebe1] flex items-center justify-center text-[#a69e91] relative">
                         <span className="text-4xl">🎬</span>
                         <div className="absolute top-3 right-3">
                           <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-md ${getStatusBadgeStyle(
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${getStatusBadgeStyle(
                               movie.status
                             )}`}
                           >
@@ -877,7 +882,7 @@ export default function Home() {
                     <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                       <div>
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-bold text-slate-100 text-base leading-snug line-clamp-1">
+                          <h3 className="font-bold text-[#3d3832] text-base leading-snug line-clamp-1">
                             {movie.title}
                           </h3>
                           {!movie.imageUrl && (
@@ -891,9 +896,9 @@ export default function Home() {
                           )}
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-slate-400 mt-1.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-[#786e61] mt-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded font-medium text-slate-300">
+                            <span className="bg-[#f4efe6] border border-[#d6cfc2] px-2 py-0.5 rounded font-medium text-[#5c5346]">
                               {movie.genre}
                             </span>
                             <span className="hidden sm:inline">•</span>
@@ -915,10 +920,10 @@ export default function Home() {
                                 Math.min(100, (currentRating - (star - 1)) * 100)
                               );
                               return (
-                                <div key={star} className="relative inline-block w-4 h-4 text-zinc-700">
-                                  <span className="absolute inset-0 text-zinc-700">★</span>
+                                <div key={star} className="relative inline-block w-4 h-4 text-[#d6cfc2]">
+                                  <span className="absolute inset-0 text-[#d6cfc2]">★</span>
                                   <span
-                                    className="absolute inset-0 overflow-hidden text-amber-400"
+                                    className="absolute inset-0 overflow-hidden text-[#c27842]"
                                     style={{ width: `${fillPercentage}%` }}
                                   >
                                     ★
@@ -927,23 +932,23 @@ export default function Home() {
                               );
                             })}
                           </div>
-                          <span className="text-xs text-slate-400 font-medium">
+                          <span className="text-xs text-[#786e61] font-medium">
                             ({currentRating})
                           </span>
                         </div>
 
                         {movie.memo && (
-                          <div className="text-xs text-slate-300 bg-zinc-900 border border-zinc-800/60 p-2.5 rounded-lg mt-2.5 max-h-24 overflow-y-auto whitespace-pre-wrap break-words">
+                          <div className="text-xs text-[#5c5346] bg-[#f9f7f2] border border-[#e6decf] p-2.5 rounded-lg mt-2.5 max-h-24 overflow-y-auto whitespace-pre-wrap break-words">
                             {movie.memo}
                           </div>
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-zinc-800 flex justify-end">
+                      <div className="pt-2 border-t border-[#e6decf] flex justify-end">
                         <button
                           type="button"
                           onClick={() => handleStartEdit(movie)}
-                          className="text-xs bg-zinc-800 hover:bg-zinc-700 text-slate-200 font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1"
+                          className="text-xs bg-[#f0ebe1] hover:bg-[#e4dcd0] text-[#3d3832] font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1"
                         >
                           ✏️ 編集する
                         </button>
@@ -956,17 +961,17 @@ export default function Home() {
           )}
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+            <div className="flex items-center justify-between pt-4 border-t border-[#d6cfc2]">
               <button
                 type="button"
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800 text-slate-200 text-xs font-bold rounded-lg transition"
+                className="px-4 py-2 bg-[#f0ebe1] hover:bg-[#e4dcd0] disabled:opacity-35 disabled:hover:bg-[#f0ebe1] text-[#3d3832] text-xs font-bold rounded-lg transition"
               >
                 ◀ 前の5件
               </button>
 
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-[#8c8273]">
                 {currentPage} / {totalPages} ページ
               </span>
 
@@ -974,7 +979,7 @@ export default function Home() {
                 type="button"
                 onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800 text-slate-200 text-xs font-bold rounded-lg transition"
+                className="px-4 py-2 bg-[#f0ebe1] hover:bg-[#e4dcd0] disabled:opacity-35 disabled:hover:bg-[#f0ebe1] text-[#3d3832] text-xs font-bold rounded-lg transition"
               >
                 次の5件 ▶
               </button>
@@ -982,20 +987,63 @@ export default function Home() {
           )}
         </div>
 
-        {/* 映画一覧の下にカレンダーを配置 */}
-        {calendarWidget}
+        {/* 映画一覧の下にあるカレンダー ＋ 「大きく見る」ボタン */}
+        <div className="space-y-2">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsCalendarModalOpen(true)}
+              className="text-xs font-bold bg-[#7a4f43] hover:bg-[#684238] text-white px-3.5 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5"
+            >
+              🔍 カレンダーを大きく見る
+            </button>
+          </div>
+          <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-5 rounded-2xl shadow-sm">
+            {renderCalendarContent(false)}
+          </div>
+        </div>
       </div>
+
+      {/* カレンダー拡大表示用モーダル */}
+      {isCalendarModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#fbf9f5] border border-[#d6cfc2] rounded-3xl p-6 w-full max-w-2xl space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-[#d6cfc2] pb-3">
+              <h2 className="font-bold text-[#3d3832] text-base">📅 カレンダー（拡大表示）</h2>
+              <button
+                type="button"
+                onClick={() => setIsCalendarModalOpen(false)}
+                className="text-[#8c8273] hover:text-[#3d3832] text-xl font-bold px-2"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {renderCalendarContent(true)}
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsCalendarModalOpen(false)}
+                className="bg-[#7a4f43] hover:bg-[#684238] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* メンバー・ジャンル管理モーダル */}
       {isManageOpen && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md space-y-6 shadow-xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h2 className="font-bold text-slate-100 text-base">⚙️ メンバー・ジャンル管理</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#fbf9f5] border border-[#d6cfc2] rounded-2xl p-6 w-full max-w-md space-y-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#d6cfc2] pb-3">
+              <h2 className="font-bold text-[#3d3832] text-base">⚙️ メンバー・ジャンル管理</h2>
               <button
                 type="button"
                 onClick={() => setIsManageOpen(false)}
-                className="text-zinc-400 hover:text-slate-200 text-lg font-bold"
+                className="text-[#8c8273] hover:text-[#3d3832] text-lg font-bold"
               >
                 ✕
               </button>
@@ -1003,30 +1051,30 @@ export default function Home() {
 
             {/* メンバー管理 */}
             <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">鑑賞メンバー管理</h3>
+              <h3 className="text-xs font-semibold text-[#5c5346] uppercase tracking-wider">鑑賞メンバー管理</h3>
               <form onSubmit={handleAddMember} className="flex gap-2">
                 <input
                   type="text"
                   value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
                   placeholder="新しいメンバー名"
-                  className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="flex-1 border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-white focus:outline-none focus:ring-2 focus:ring-[#a34743]"
                 />
                 <button
                   type="submit"
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition"
+                  className="bg-[#7a4f43] hover:bg-[#684238] text-white px-4 py-2 rounded-lg text-xs font-bold transition"
                 >
                   追加
                 </button>
               </form>
               <div className="flex flex-wrap gap-2 pt-1">
                 {members.map((m) => (
-                  <div key={m} className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs text-slate-200">
+                  <div key={m} className="flex items-center gap-1.5 bg-white border border-[#d6cfc2] px-3 py-1.5 rounded-lg text-xs text-[#3d3832]">
                     <span>{m}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveMember(m)}
-                      className="text-zinc-500 hover:text-rose-400 font-bold"
+                      className="text-[#8c8273] hover:text-[#a34743] font-bold"
                     >
                       ×
                     </button>
@@ -1036,31 +1084,31 @@ export default function Home() {
             </div>
 
             {/* ジャンル管理 */}
-            <div className="space-y-3 pt-4 border-t border-zinc-800">
-              <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">ジャンル管理</h3>
+            <div className="space-y-3 pt-4 border-t border-[#d6cfc2]">
+              <h3 className="text-xs font-semibold text-[#5c5346] uppercase tracking-wider">ジャンル管理</h3>
               <form onSubmit={handleAddGenre} className="flex gap-2">
                 <input
                   type="text"
                   value={newGenreName}
                   onChange={(e) => setNewGenreName(e.target.value)}
                   placeholder="新しいジャンル名"
-                  className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="flex-1 border border-[#d6cfc2] rounded-lg px-3 py-2 text-sm text-[#3d3832] bg-white focus:outline-none focus:ring-2 focus:ring-[#a34743]"
                 />
                 <button
                   type="submit"
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition"
+                  className="bg-[#7a4f43] hover:bg-[#684238] text-white px-4 py-2 rounded-lg text-xs font-bold transition"
                 >
                   追加
                 </button>
               </form>
               <div className="flex flex-wrap gap-2 pt-1">
                 {genres.map((g) => (
-                  <div key={g} className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs text-slate-200">
+                  <div key={g} className="flex items-center gap-1.5 bg-white border border-[#d6cfc2] px-3 py-1.5 rounded-lg text-xs text-[#3d3832]">
                     <span>{g}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveGenre(g)}
-                      className="text-zinc-500 hover:text-rose-400 font-bold"
+                      className="text-[#8c8273] hover:text-[#a34743] font-bold"
                     >
                       ×
                     </button>
@@ -1073,7 +1121,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setIsManageOpen(false)}
-                className="bg-zinc-800 hover:bg-zinc-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-lg transition"
+                className="bg-[#f0ebe1] hover:bg-[#e4dcd0] text-[#3d3832] text-xs font-bold px-4 py-2 rounded-lg transition"
               >
                 閉じる
               </button>
