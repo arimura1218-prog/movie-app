@@ -48,7 +48,7 @@ export default function Home() {
 
   // フォーム用ステート
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('映画'); // '映画' または 'ドラマ'
+  const [category, setCategory] = useState('映画');
   const [genre, setGenre] = useState(genres[0] || 'アクション');
   const [status, setStatus] = useState('観たい');
   const [watchedDate, setWatchedDate] = useState('');
@@ -59,7 +59,6 @@ export default function Home() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // フィルター・タブ用ステート（大分類：すべて / 映画 / ドラマ）
   const [selectedCategory, setSelectedCategory] = useState('すべて');
   const [searchKeyword, setSearchKeyword] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('searchKeyword') || '';
@@ -123,7 +122,7 @@ export default function Home() {
         const data = await res.json();
         const formattedData = data.map((m: any) => ({
           ...m,
-          category: m.category || '映画', // 既存データにない場合はデフォルトで映画
+          category: m.category || '映画',
           watchers: m.watchers || (m.watcher ? [m.watcher] : [members[0] || 'ユウ']),
         }));
         setMovies(formattedData);
@@ -314,6 +313,27 @@ export default function Home() {
     return 'bg-[#f4ebe3] text-[#9c6644] border border-[#e0c9b7]';
   };
 
+  // 統計カウンター用の計算（今年・今月の鑑賞本数）
+  const targetYear = new Date().getFullYear();
+  const targetMonth = new Date().getMonth() + 1;
+
+  const countByMemberAndCategory = movies.filter((m) => {
+    if (m.status !== '観た' || !m.watchedDate) return false;
+    if (selectedCategory !== 'すべて' && m.category !== selectedCategory) return false;
+    if (selectedMember !== '全員' && !m.watchers?.includes(selectedMember)) return false;
+    return true;
+  });
+
+  const totalThisYear = countByMemberAndCategory.filter((m) => {
+    const movieYear = new Date(m.watchedDate).getFullYear();
+    return movieYear === targetYear;
+  }).length;
+
+  const totalThisMonth = countByMemberAndCategory.filter((m) => {
+    const d = new Date(m.watchedDate);
+    return d.getFullYear() === targetYear && d.getMonth() + 1 === targetMonth;
+  }).length;
+
   // カレンダー用ロジック
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -330,15 +350,12 @@ export default function Home() {
 
   const filteredAndSortedMovies = movies
     .filter((movie) => {
-      // 大分類フィルター（映画 / ドラマ）
-      if (selectedCategory !== 'support' && selectedCategory !== 'すべて' && movie.category !== selectedCategory) {
+      if (selectedCategory !== 'すべて' && movie.category !== selectedCategory) {
         return false;
       }
-      // メンバーフィルター
       if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
         return false;
       }
-      // キーワード検索
       if (searchKeyword.trim()) {
         const keyword = searchKeyword.toLowerCase();
         const matchTitle = movie.title.toLowerCase().includes(keyword);
@@ -434,7 +451,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* 大分類選択（映画 / ドラマ） */}
       <div>
         <label className="block text-xs font-semibold text-[#5c5346] mb-1">大分類</label>
         <div className="grid grid-cols-2 gap-2">
@@ -772,7 +788,46 @@ export default function Home() {
       </div>
 
       <div className="flex-1 space-y-8 flex flex-col">
-        {/* 大分類（すべて・映画・ドラマ）切り替えタブ ＆ メンバー選択 */}
+        {/* 画像風のステータスボード（今年・今月の鑑賞本数カウンター） */}
+        <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-6 md:p-8 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between">
+          {/* 右上のアクセント丸（画像を模したデザイン） */}
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#e8dec5] rounded-full opacity-60 pointer-events-none"></div>
+
+          <div className="flex items-center justify-between z-10 mb-4">
+            <span className="text-xs font-bold text-[#8c8273] tracking-wider uppercase">
+              {targetYear} 年 統計 ({selectedCategory} / {selectedMember})
+            </span>
+            <span className="text-xs text-[#8c8273] font-medium">
+              ステータス「観た」を反映
+            </span>
+          </div>
+
+          <div className="flex items-baseline gap-4 z-10">
+            <div className="flex items-baseline gap-1">
+              <span className="text-5xl md:text-6xl font-extrabold font-mono text-[#3d3832]">
+                {totalThisYear}
+              </span>
+              <span className="text-base font-bold text-[#7a4f43]">本</span>
+            </div>
+
+            <span className="text-3xl text-[#d6cfc2] font-light">|</span>
+
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl md:text-5xl font-extrabold font-mono text-[#3d3832]">
+                {totalThisMonth}
+              </span>
+              <span className="text-sm font-bold text-[#7a4f43]">{targetMonth}月</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mt-6 z-10">
+            <span className="w-4 h-4 rounded bg-[#9c6644] inline-block"></span>
+            <span className="w-4 h-4 rounded bg-[#5a6b5c] inline-block"></span>
+            <span className="w-4 h-4 rounded bg-[#7a4f43] inline-block"></span>
+          </div>
+        </div>
+
+        {/* 大分類タブ ＆ メンバー選択 */}
         <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-4 md:p-6 rounded-2xl shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-[#d6cfc2] pb-3">
             <div className="flex gap-2">
