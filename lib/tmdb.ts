@@ -1,5 +1,5 @@
 const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-const TMDB_BASE_URL = 'https://image.tmdb.org/t/p'; // または api.themoviedb.org/3
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 export interface TMDBResult {
   id: number;
@@ -12,14 +12,14 @@ export interface TMDBResult {
 /**
  * TMDBのマルチ検索（映画・ドラマを同時に検索）を使ってヒット率を上げる
  */
-export async function searchTMDB(query: string, type?: 'movie' | 'tv' = 'movie'): Promise<TMDBResult[]> {
+// 修正：type? ではなく type に変更し、デフォルト値を設定
+export async function searchTMDB(query: string, type: 'movie' | 'tv' = 'movie'): Promise<TMDBResult[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
 
   try {
-    // 映画とドラマを同時に探せる /search/multi を使用する
     const res = await fetch(
-      `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&language=ja-JP&query=${encodeURIComponent(trimmed)}`
+      `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&language=ja-JP&query=${encodeURIComponent(trimmed)}`
     );
     const data = await res.json();
     
