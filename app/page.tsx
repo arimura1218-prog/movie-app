@@ -300,6 +300,20 @@ export default function Home() {
     return 'bg-amber-950 text-amber-300 border border-amber-800';
   };
 
+  // カレンダー用ロジック
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  const calendarDays = [];
+  for (let i = 0; i < firstDayIndex; i++) {
+    calendarDays.push(null);
+  }
+  for (let d = 1; d <= lastDay; d++) {
+    calendarDays.push(d);
+  }
+
   const filteredAndSortedMovies = movies
     .filter((movie) => {
       if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
@@ -527,7 +541,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-slate-100 p-4 md:p-8 flex flex-col md:flex-row gap-8 relative">
-      <div className="w-full md:w-1/3">
+      <div className="w-full md:w-1/3 space-y-8">
         <div className="md:hidden flex items-center justify-between bg-zinc-900 border border-zinc-800 p-4 rounded-2xl shadow-md mb-4">
           <h1 className="text-base font-bold text-slate-100 flex items-center gap-1.5 whitespace-nowrap">
             🎬 映画記録
@@ -567,6 +581,103 @@ export default function Home() {
             </button>
           </div>
           {formContent}
+        </div>
+
+        {/* カレンダーウィジェット */}
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-md space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+              📅 鑑賞カレンダー
+            </h2>
+            <div className="flex items-center gap-1 text-xs font-semibold text-slate-300">
+              <button
+                type="button"
+                onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+                className="p-1 hover:bg-zinc-800 rounded transition"
+              >
+                ◀
+              </button>
+              <span className="min-w-[70px] text-center">
+                {year}年{month + 1}月
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+                className="p-1 hover:bg-zinc-800 rounded transition"
+              >
+                ▶
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 pb-1 border-b border-zinc-800">
+            <span className="text-rose-400">日</span>
+            <span>月</span>
+            <span>火</span>
+            <span>水</span>
+            <span>木</span>
+            <span>金</span>
+            <span className="text-sky-400">土</span>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+            {calendarDays.map((d, i) => {
+              if (d === null) {
+                return <div key={`empty-${i}`} className="h-9"></div>;
+              }
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              const dayMovies = movies.filter((m) => m.watchedDate === dateStr);
+              const hasWatched = dayMovies.length > 0;
+
+              return (
+                <div
+                  key={`day-${d}`}
+                  className={`h-9 flex flex-col items-center justify-center rounded-lg relative ${
+                    hasWatched ? 'bg-amber-950/60 border border-amber-600/50 text-amber-200 font-bold' : 'text-slate-300 hover:bg-zinc-800'
+                  }`}
+                  title={hasWatched ? dayMovies.map((m) => m.title).join(', ') : ''}
+                >
+                  <span className="text-xs leading-none">{d}</span>
+                  {hasWatched && (
+                    <span className="absolute bottom-1 w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 今月の予定リスト */}
+          <div className="pt-2 border-t border-zinc-800 space-y-2">
+            <h3 className="text-xs font-semibold text-slate-400">今月の鑑賞予定・記録</h3>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {movies.filter((m) => {
+                if (!m.watchedDate) return false;
+                const mDate = new Date(m.watchedDate);
+                return mDate.getFullYear() === year && mDate.getMonth() === month;
+              }).length === 0 ? (
+                <p className="text-xs text-zinc-500 py-1">今月の鑑賞記録はありません。</p>
+              ) : (
+                movies
+                  .filter((m) => {
+                    if (!m.watchedDate) return false;
+                    const mDate = new Date(m.watchedDate);
+                    return mDate.getFullYear() === year && mDate.getMonth() === month;
+                  })
+                  .sort((a, b) => a.watchedDate.localeCompare(b.watchedDate))
+                  .map((m) => (
+                    <div key={`month-movie-${m.id}`} className="flex items-center justify-between text-xs bg-zinc-950 p-2 rounded-lg border border-zinc-800">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-amber-400 font-mono text-[10px]">{m.watchedDate.slice(5)}</span>
+                        <span className="truncate font-medium text-slate-200">{m.title}</span>
+                      </div>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(m.status)}`}>
+                        {m.status}
+                      </span>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
         </div>
 
         {isFormOpen && (
