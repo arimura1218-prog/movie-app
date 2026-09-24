@@ -8,7 +8,7 @@ type Movie = {
   genre: string;
   status: string;
   watchedDate: string;
-  watchers: string[]; // 複数選択に変更
+  watchers: string[]; // 複数選択
   memo: string;
   imageUrl: string;
   rating: number;
@@ -29,16 +29,26 @@ export default function Home() {
   const [genre, setGenre] = useState('アクション');
   const [status, setStatus] = useState('観たい');
   const [watchedDate, setWatchedDate] = useState('');
-  const [watchers, setWatchers] = useState<string[]>(['太郎']); // 複数の鑑賞者
+  const [watchers, setWatchers] = useState<string[]>(['太郎']);
   const [rating, setRating] = useState<number>(3.5);
   const [memo, setMemo] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [selectedMember, setSelectedMember] = useState('全員');
-  const [sortBy, setSortBy] = useState('newest');
+  // 前回選んだ状態を復元できるように localStorage を使用
+  const [searchKeyword, setSearchKeyword] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('searchKeyword') || '';
+    return '';
+  });
+  const [selectedMember, setSelectedMember] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('selectedMember') || '全員';
+    return '全員';
+  });
+  const [sortBy, setSortBy] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('sortBy') || 'newest';
+    return 'newest';
+  });
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -46,12 +56,24 @@ export default function Home() {
     fetchMovies();
   }, []);
 
+  // 状態が変わるたびに localStorage に保存
+  useEffect(() => {
+    localStorage.setItem('searchKeyword', searchKeyword);
+  }, [searchKeyword]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedMember', selectedMember);
+  }, [selectedMember]);
+
+  useEffect(() => {
+    localStorage.setItem('sortBy', sortBy);
+  }, [sortBy]);
+
   const fetchMovies = async () => {
     try {
       const res = await fetch('/api/movies');
       if (res.ok) {
         const data = await res.json();
-        // 古いデータ（watcher単数）との互換性のため watchers 配列に変換するケア
         const formattedData = data.map((m: any) => ({
           ...m,
           watchers: m.watchers || (m.watcher ? [m.watcher] : [members[0] || '太郎']),
@@ -177,7 +199,6 @@ export default function Home() {
 
   const handleWatcherToggle = (member: string) => {
     if (watchers.includes(member)) {
-      // 0人になるのを防ぐ場合はここでガード（お好みで。今回は最低1人保持）
       if (watchers.length === 1) {
         alert('鑑賞者は最低1人選択してください。');
         return;
@@ -202,7 +223,6 @@ export default function Home() {
       return;
     }
     setMembers(members.filter((m) => m !== target));
-    // 削除されたメンバーを各映画の watchers からも外す
     setMovies(movies.map(m => ({
       ...m,
       watchers: m.watchers.filter(w => w !== target)
@@ -669,7 +689,6 @@ export default function Home() {
                         )}
                       </div>
 
-                      {/* 鑑賞者・ジャンル情報（スマホ縦並び・PC横並び対応） */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-slate-400 mt-1.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded font-medium text-slate-300">
@@ -834,84 +853,74 @@ export default function Home() {
               </h3>
               <div className="flex flex-wrap gap-2">
                 {members.map((m) => (
-                  <span
+                  <div
                     key={m}
-                    className="inline-flex items-center gap-1 bg-zinc-800 text-slate-200 px-3 py-1 rounded-full text-sm font-medium border border-zinc-700"
+                    className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200"
                   >
-                    {m}
+                    <span>{m}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveMember(m)}
-                      className="text-zinc-400 hover:text-rose-400 font-bold ml-1"
+                      className="text-rose-400 hover:text-rose-300 ml-1 font-bold"
                     >
                       ×
                     </button>
-                  </span>
+                  </div>
                 ))}
               </div>
-              <form onSubmit={handleAddMember} className="flex gap-2">
+              <form onSubmit={handleAddMember} className="flex gap-2 pt-1">
                 <input
                   type="text"
                   value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
                   placeholder="新しいメンバー名"
-                  className="flex-1 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 bg-zinc-950 placeholder-zinc-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
                 <button
                   type="submit"
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition shadow"
                 >
                   追加
                 </button>
               </form>
             </div>
 
-            <div className="space-y-3 pt-4 border-t border-zinc-800">
+            <div className="space-y-3 pt-3 border-t border-zinc-800">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 ジャンル管理
               </h3>
               <div className="flex flex-wrap gap-2">
                 {genres.map((g) => (
-                  <span
+                  <div
                     key={g}
-                    className="inline-flex items-center gap-1 bg-zinc-800 text-slate-200 px-3 py-1 rounded-full text-sm font-medium border border-zinc-700"
+                    className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200"
                   >
-                    {g}
+                    <span>{g}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveGenre(g)}
-                      className="text-zinc-400 hover:text-rose-400 font-bold ml-1"
+                      className="text-rose-400 hover:text-rose-300 ml-1 font-bold"
                     >
                       ×
                     </button>
-                  </span>
+                  </div>
                 ))}
               </div>
-              <form onSubmit={handleAddGenre} className="flex gap-2">
+              <form onSubmit={handleAddGenre} className="flex gap-2 pt-1">
                 <input
                   type="text"
                   value={newGenreName}
                   onChange={(e) => setNewGenreName(e.target.value)}
                   placeholder="新しいジャンル名"
-                  className="flex-1 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 bg-zinc-950 placeholder-zinc-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-slate-100 bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
                 <button
                   type="submit"
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition shadow"
                 >
                   追加
                 </button>
               </form>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsManageOpen(false)}
-                className="bg-zinc-800 hover:bg-zinc-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold transition"
-              >
-                閉じる
-              </button>
             </div>
           </div>
         </div>
