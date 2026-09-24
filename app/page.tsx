@@ -17,17 +17,14 @@ type Movie = {
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
 
-  // メンバーの初期値を「ユウ」と「マリコ」に変更
   const [members, setMembers] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('members');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // もし旧データの「太郎」「花子」だけだったり、ユウだけだった場合のフォールバック
         const defaultMembers = ['ユウ', 'マリコ'];
-        // 保存されているものとデフォルトを統合しつつ重複を排除
         const combined = Array.from(new Set([...parsed, ...defaultMembers]));
-        return combined.filter(m => m !== '太郎' && m !== '花子'); // 太郎・花子は除外
+        return combined.filter(m => m !== '太郎' && m !== '花子');
       }
     }
     return ['ユウ', 'マリコ'];
@@ -71,7 +68,6 @@ export default function Home() {
     return 'newest';
   });
 
-  // ページネーション用の状態
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
@@ -685,111 +681,130 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginatedMovies.map((movie) => (
-                <div
-                  key={movie.id}
-                  className="border border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-zinc-700 transition flex flex-col bg-zinc-950 group"
-                >
-                  {movie.imageUrl ? (
-                    <div className="w-full h-64 bg-zinc-900 relative overflow-hidden flex items-center justify-center">
-                      <div
-                        className="absolute inset-0 bg-cover bg-center filter blur-md opacity-30 scale-110"
-                        style={{ backgroundImage: `url(${movie.imageUrl})` }}
-                      ></div>
-                      <img
-                        src={movie.imageUrl}
-                        alt={movie.title}
-                        className="relative z-10 w-full h-full object-contain drop-shadow-md"
-                      />
-                      <div className="absolute top-3 right-3 z-20">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-md ${getStatusBadgeStyle(
-                            movie.status
-                          )}`}
-                        >
-                          {movie.status}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-40 bg-zinc-900 flex items-center justify-center text-zinc-600 relative">
-                      <span className="text-4xl">🎬</span>
-                      <div className="absolute top-3 right-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-md ${getStatusBadgeStyle(
-                            movie.status
-                          )}`}
-                        >
-                          {movie.status}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-bold text-slate-100 text-base leading-snug line-clamp-1">
-                          {movie.title}
-                        </h3>
-                        {!movie.imageUrl && (
+              {paginatedMovies.map((movie) => {
+                const currentRating = movie.rating ?? 3.5;
+                return (
+                  <div
+                    key={movie.id}
+                    className="border border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-zinc-700 transition flex flex-col bg-zinc-950 group"
+                  >
+                    {movie.imageUrl ? (
+                      <div className="w-full h-64 bg-zinc-900 relative overflow-hidden flex items-center justify-center">
+                        <div
+                          className="absolute inset-0 bg-cover bg-center filter blur-md opacity-30 scale-110"
+                          style={{ backgroundImage: `url(${movie.imageUrl})` }}
+                        ></div>
+                        <img
+                          src={movie.imageUrl}
+                          alt={movie.title}
+                          className="relative z-10 w-full h-full object-contain drop-shadow-md"
+                        />
+                        <div className="absolute top-3 right-3 z-20">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusTagStyle(
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-md ${getStatusBadgeStyle(
                               movie.status
                             )}`}
                           >
                             {movie.status}
                           </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-slate-400 mt-1.5">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded font-medium text-slate-300">
-                            {movie.genre}
-                          </span>
-                          <span className="hidden sm:inline">•</span>
-                          <span>鑑賞者: {movie.watchers?.join(', ')}</span>
                         </div>
-                        {movie.watchedDate && (
-                          <div className="flex items-center gap-1.5">
+                      </div>
+                    ) : (
+                      <div className="w-full h-40 bg-zinc-900 flex items-center justify-center text-zinc-600 relative">
+                        <span className="text-4xl">🎬</span>
+                        <div className="absolute top-3 right-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-md ${getStatusBadgeStyle(
+                              movie.status
+                            )}`}
+                          >
+                            {movie.status}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-bold text-slate-100 text-base leading-snug line-clamp-1">
+                            {movie.title}
+                          </h3>
+                          {!movie.imageUrl && (
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusTagStyle(
+                                movie.status
+                              )}`}
+                            >
+                              {movie.status}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-slate-400 mt-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded font-medium text-slate-300">
+                              {movie.genre}
+                            </span>
                             <span className="hidden sm:inline">•</span>
-                            <span>視聴日: {movie.watchedDate}</span>
+                            <span>鑑賞者: {movie.watchers?.join(', ')}</span>
+                          </div>
+                          {movie.watchedDate && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="hidden sm:inline">•</span>
+                              <span>視聴日: {movie.watchedDate}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 確実に半分光る星評価の表示 */}
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <div className="flex items-center text-base leading-none">
+                            {[1, 2, 3, 4, 5].map((star) => {
+                              const fillPercentage = Math.max(
+                                0,
+                                Math.min(100, (currentRating - (star - 1)) * 100)
+                              );
+                              return (
+                                <div key={star} className="relative inline-block w-4 h-4 text-zinc-700">
+                                  {/* グレーの星（背景） */}
+                                  <span className="absolute inset-0 text-zinc-700">★</span>
+                                  {/* 金色の星（パーセンテージでクリップ表示） */}
+                                  <span
+                                    className="absolute inset-0 overflow-hidden text-amber-400"
+                                    style={{ width: `${fillPercentage}%` }}
+                                  >
+                                    ★
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <span className="text-xs text-slate-400 font-medium">
+                            ({currentRating})
+                          </span>
+                        </div>
+
+                        {movie.memo && (
+                          <div className="text-xs text-slate-300 bg-zinc-900 border border-zinc-800/60 p-2.5 rounded-lg mt-2.5 max-h-24 overflow-y-auto whitespace-pre-wrap break-words">
+                            {movie.memo}
                           </div>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1 mt-2 text-sm">
-                        <span className="text-amber-400">
-                          {'★'.repeat(Math.floor(movie.rating ?? 0))}
-                        </span>
-                        <span className="text-zinc-700">
-                          {'★'.repeat(5 - Math.floor(movie.rating ?? 0))}
-                        </span>
-                        <span className="text-xs text-slate-400 ml-1 font-medium">
-                          ({movie.rating})
-                        </span>
+                      <div className="pt-2 border-t border-zinc-800 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(movie)}
+                          className="text-xs bg-zinc-800 hover:bg-zinc-700 text-slate-200 font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1"
+                        >
+                          ✏️ 編集する
+                        </button>
                       </div>
-
-                      {movie.memo && (
-                        <div className="text-xs text-slate-300 bg-zinc-900 border border-zinc-800/60 p-2.5 rounded-lg mt-2.5 max-h-24 overflow-y-auto whitespace-pre-wrap break-words">
-                          {movie.memo}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-2 border-t border-zinc-800 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(movie)}
-                        className="text-xs bg-zinc-800 hover:bg-zinc-700 text-slate-200 font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1"
-                      >
-                        ✏️ 編集する
-                      </button>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -974,7 +989,7 @@ export default function Home() {
                   <div
                     key={g}
                     className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200"
-                  >
+                    >
                     <span>{g}</span>
                     <button
                       type="button"
@@ -998,7 +1013,7 @@ export default function Home() {
                   type="submit"
                   className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition shadow"
                 >
-                  追加したメンバーも反映
+                  追加
                 </button>
               </form>
             </div>
