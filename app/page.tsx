@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 type Movie = {
   id: string;
@@ -72,6 +72,11 @@ export default function Home() {
   const ITEMS_PER_PAGE = 5;
 
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // ハイライト中の映画IDを管理するステート
+  const [highlightedMovieId, setHighlightedMovieId] = useState<string | null>(null);
+  // 各カードのDOM参照を保持するRef
+  const movieCardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     fetchMovies();
@@ -364,6 +369,40 @@ export default function Home() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  // カレンダーの項目をクリックした時の処理（該当カードへスクロール＆ハイライト）
+  const handleJumpToMovie = (movie: Movie) => {
+    // 1. もし現在フィルター等で非表示になっている場合を考慮し、選択メンバーや検索をリセットするか確認
+    // ここでは、もし現在の絞り込みに含まれていなければ「全員」タブに切り替えるなどの配慮ができます
+    if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
+      setSelectedMember('全員');
+    }
+    if (searchKeyword.trim()) {
+      setSearchKeyword('');
+    }
+
+    // 少し待ってから（レンダリング後）該当の映画が何ページ目にあるか計算して移動する
+    setTimeout(() => {
+      const targetIndex = filteredAndSortedMovies.findIndex((m) => m.id === movie.id);
+      if (targetIndex !== -1) {
+        const targetPage = Math.floor(targetIndex / ITEMS_PER_PAGE) + 1;
+        setCurrentPage(targetPage);
+
+        // ページ切り替え後にDOMが描画されるのを待ってからスクロール
+        setTimeout(() => {
+          const cardElement = movieCardRefs.current[movie.id];
+          if (cardElement) {
+            cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setHighlightedMovieId(movie.id);
+            // 2秒後にハイライトを解除
+            setTimeout(() => {
+              setHighlightedMovieId(null);
+            }, 2000);
+          }
+        }, 100);
+      }
+    }, 50);
+  };
+
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex items-center justify-between">
@@ -646,10 +685,10 @@ export default function Home() {
             })}
           </div>
 
-          {/* 今月の予定リスト */}
+          {/* 今月の予定リスト（クリックで該当カードへジャンプ＆スクロール） */}
           <div className="pt-2 border-t border-zinc-800 space-y-2">
-            <h3 className="text-xs font-semibold text-slate-400">今月の鑑賞予定・記録</h3>
-            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+            <h3 className="text-xs font-semibold text-slate-400">今月の鑑賞予定・記録 (クリックでジャンプ)</h3>
+            <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
               {movies.filter((m) => {
                 if (!m.watchedDate) return false;
                 const mDate = new Date(m.watchedDate);
@@ -665,12 +704,27 @@ export default function Home() {
                   })
                   .sort((a, b) => a.watchedDate.localeCompare(b.watchedDate))
                   .map((m) => (
-                    <div key={`month-movie-${m.id}`} className="flex items-center justify-between text-xs bg-zinc-950 p-2 rounded-lg border border-zinc-800">
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-amber-400 font-mono text-[10px]">{m.watchedDate.slice(5)}</span>
-                        <span className="truncate font-medium text-slate-200">{m.title}</span>
+                    <div 
+                      key={`month-movie-${m.id}`} 
+                      onClick={() => handleJumpToMovie(m)}
+                      className="flex items-center justify-between text-xs bg-zinc-950 p-2 rounded-xl border border-zinc-800 gap-2 cursor-pointer hover:border-amber-500/50 hover:bg-zinc-900/80 transition"
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        {m.imageUrl ? (
+                          <div className="w-8 h-10 bg-zinc-900 rounded overflow-hidden flex-shrink-0 flex items-center justify-center border border-zinc-800">
+                            <img src={m.imageUrl} alt={m.title} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-10 bg-zinc-900 rounded flex-shrink-0 flex items-center justify-center text-zinc-600 text-xs border border-zinc-800">
+                            🎬
+                          </div>
+                        )}
+                        <div className="truncate">
+                          <span className="text-amber-400 font-mono text-[10px] block">{m.watchedDate.slice(5)}</span>
+                          <span className="truncate font-medium text-slate-200 block">{m.title}</span>
+                        </div>
                       </div>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(m.status)}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${getStatusBadgeStyle(m.status)}`}>
                         {m.status}
                       </span>
                     </div>
@@ -797,10 +851,16 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedMovies.map((movie) => {
                 const currentRating = movie.rating ?? 3.5;
+                const isHighlighted = highlightedMovieId === movie.id;
                 return (
                   <div
                     key={movie.id}
-                    className="border border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-zinc-700 transition flex flex-col bg-zinc-950 group"
+                    ref={(el) => { movieCardRefs.current[movie.id] = el; }}
+                    className={`border rounded-2xl overflow-hidden shadow-sm transition flex flex-col bg-zinc-950 group ${
+                      isHighlighted 
+                        ? 'border-amber-400 ring-4 ring-amber-500/40 scale-[1.02] duration-300' 
+                        : 'border-zinc-800 hover:shadow-lg hover:border-zinc-700'
+                    }`}
                   >
                     {movie.imageUrl ? (
                       <div className="w-full h-64 bg-zinc-900 relative overflow-hidden flex items-center justify-center">
