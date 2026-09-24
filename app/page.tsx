@@ -23,7 +23,7 @@ export default function Home() {
       const saved = localStorage.getItem('members');
       if (saved) return JSON.parse(saved);
     }
-    return ['ユウ']; // 初期メンバー
+    return ['ユウ'];
   });
 
   const [genres, setGenres] = useState<string[]>(() => {
@@ -31,7 +31,7 @@ export default function Home() {
       const saved = localStorage.getItem('genres');
       if (saved) return JSON.parse(saved);
     }
-    return ['アクション', 'ドラマ', 'アニメ', 'ラブコメディ']; // 初期ジャンル
+    return ['アクション', 'ドラマ', 'アニメ', 'ラブコメディ'];
   });
 
   const [isManageOpen, setIsManageOpen] = useState(false);
@@ -64,11 +64,20 @@ export default function Home() {
     return 'newest';
   });
 
+  // ページネーション用の状態（何ページ目か）
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5; // 1ページあたりの表示件数
+
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     fetchMovies();
   }, []);
+
+  // 検索キーワードやフィルターが変わったら、ページを1ページ目に戻す
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchKeyword, selectedMember, sortBy]);
 
   // 各種状態が変更されたら localStorage に保存
   useEffect(() => {
@@ -91,7 +100,6 @@ export default function Home() {
     localStorage.setItem('genres', JSON.stringify(genres));
   }, [genres]);
 
-  // 初回や鑑賞者が空のときのデフォルト調整
   useEffect(() => {
     if (watchers.length === 0 && members.length > 0) {
       setWatchers([members[0]]);
@@ -291,6 +299,7 @@ export default function Home() {
     return 'bg-amber-950 text-amber-300 border border-amber-800';
   };
 
+  // 絞り込みと並び替えにヒットした全リスト
   const filteredAndSortedMovies = movies
     .filter((movie) => {
       if (selectedMember !== '全員' && !movie.watchers?.includes(selectedMember)) {
@@ -318,6 +327,13 @@ export default function Home() {
       }
       return 0;
     });
+
+  // ページネーション計算（今何ページ目かによって切り出す）
+  const totalPages = Math.ceil(filteredAndSortedMovies.length / ITEMS_PER_PAGE);
+  const paginatedMovies = filteredAndSortedMovies.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -650,17 +666,24 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="text-sm font-bold text-slate-200 border-b border-zinc-800 pb-3">
-            {selectedMember}の登録リスト ({filteredAndSortedMovies.length}件)
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div className="text-sm font-bold text-slate-200">
+              {selectedMember}の登録リスト ({filteredAndSortedMovies.length}件中)
+            </div>
+            {filteredAndSortedMovies.length > 0 && (
+              <div className="text-xs text-zinc-400">
+                {currentPage} / {totalPages || 1} ページ
+              </div>
+            )}
           </div>
 
-          {filteredAndSortedMovies.length === 0 ? (
+          {paginatedMovies.length === 0 ? (
             <div className="text-center py-12 text-zinc-500 text-sm">
               該当する映画・ドラマはまだありません。
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAndSortedMovies.map((movie) => (
+              {paginatedMovies.map((movie) => (
                 <div
                   key={movie.id}
                   className="border border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-zinc-700 transition flex flex-col bg-zinc-950 group"
@@ -765,6 +788,33 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* ページネーション（次へ・前へ）ボタン */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800 text-slate-200 text-xs font-bold rounded-lg transition"
+              >
+                ◀ 前の5件
+              </button>
+
+              <span className="text-xs text-slate-400">
+                {currentPage} / {totalPages} ページ
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800 text-slate-200 text-xs font-bold rounded-lg transition"
+              >
+                次の5件 ▶
+              </button>
             </div>
           )}
         </div>
@@ -924,7 +974,7 @@ export default function Home() {
                     key={g}
                     className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200"
                   >
-                    <span><span>{g}</span></span>
+                    <span>{g}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveGenre(g)}
