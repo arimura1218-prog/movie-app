@@ -2,34 +2,25 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
-  // 認証をバイパスしたいパスがあればここに設定できます（基本はそのままでOK）
-  const basicAuth = req.headers.get('authorization');
+  const { pathname } = req.nextUrl;
 
-  // 設定するユーザー名とパスワード
-  // 例: ユーザー名「admin」、パスワード「secret123」にしたい場合
-  const USERNAME = process.env.BASIC_AUTH_USER || 'admin';
-  const PASSWORD = process.env.BASIC_AUTH_PASSWORD || 'secret123';
-
-  if (basicAuth) {
-    const authValue = basicAuth.split(' ')[1];
-    // Base64デコード
-    const [user, pwd] = Buffer.from(authValue, 'base64').toString().split(':');
-
-    if (user === USERNAME && pwd === PASSWORD) {
-      return NextResponse.next();
-    }
+  // ログインページ自体や、APIなどの静的ファイルへのアクセスはブロックしない
+  if (pathname.startsWith('/login') || pathname.startsWith('/_next') || pathname.startsWith('/api')) {
+    return NextResponse.next();
   }
 
-  // 認証失敗時、または未入力時は認証ポップアップを表示
-  return new NextResponse('Auth required.', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Secure Area"',
-    },
-  });
+  // クッキーからログイン済みかチェック
+  const authCookie = req.cookies.get('my-movie-app-auth');
+
+  // ログインしていなければ /login ページへ強制送還
+  if (!authCookie || authCookie.value !== 'authenticated') {
+    const loginUrl = new URL('/login', req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
 }
 
-// 認証をかけたいパスの指定（アプリ全体にかけたい場合はすべて対象にします）
 export const config = {
   matcher: ['/:path*'],
 };
