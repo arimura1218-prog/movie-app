@@ -6,7 +6,7 @@ import { searchTMDB, getTMDBImageUrl, TMDBResult } from '@/lib/tmdb';
 type Movie = {
   id: string;
   title: string;
-  category: string; // '映画' または 'ドラマ'
+  category: string;
   genre: string;
   status: string;
   watchedDate: string;
@@ -47,7 +47,6 @@ export default function Home() {
   const [newMemberName, setNewMemberName] = useState('');
   const [newGenreName, setNewGenreName] = useState('');
 
-  // フォーム用ステート
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('映画');
   const [genre, setGenre] = useState(genres[0] || 'アクション');
@@ -58,13 +57,11 @@ export default function Home() {
   const [memo, setMemo] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  // TMDB検索候補用ステート
   const [tmdbResults, setTmdbResults] = useState<TMDBResult[]>([]);
   const [isSearchingTMDB, setIsSearchingTMDB] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // ▼ ここで localStorage を使って選択状態を記憶・復元するように修正しています
   const [selectedCategory, setSelectedCategory] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('selectedCategory');
@@ -102,7 +99,6 @@ export default function Home() {
     setCurrentPage(1);
   }, [searchKeyword, selectedMember, sortBy, selectedCategory]);
 
-  // ▼ selectedCategory が変わるたびに自動で localStorage に保存します
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('selectedCategory', selectedCategory);
@@ -163,7 +159,6 @@ export default function Home() {
     }
   };
 
-  // TMDBを検索する関数
   const handleSearchTMDB = async () => {
     if (!title.trim()) return;
     setIsSearchingTMDB(true);
@@ -173,7 +168,6 @@ export default function Home() {
     setIsSearchingTMDB(false);
   };
 
-  // 検索候補から選んだときの処理
   const handleSelectTMDBResult = (result: TMDBResult) => {
     const selectedTitle = result.title || result.name || '';
     setTitle(selectedTitle);
@@ -349,7 +343,6 @@ export default function Home() {
     return 'bg-[#9c6644] text-white';
   };
 
-  // 統計カウンター用の計算（今年・今月の鑑賞本数）
   const targetYear = new Date().getFullYear();
   const targetMonth = new Date().getMonth() + 1;
 
@@ -370,7 +363,6 @@ export default function Home() {
     return d.getFullYear() === targetYear && d.getMonth() + 1 === targetMonth;
   }).length;
 
-  // カレンダー用ロジック
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDayIndex = new Date(year, month, 1).getDay();
@@ -527,7 +519,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* TMDBの検索候補リスト表示 */}
         {tmdbResults.length > 0 && (
           <div className="mt-2 bg-white border border-[#d6cfc2] rounded-lg max-h-48 overflow-y-auto shadow-sm z-30 relative">
             <div className="p-2 text-[10px] text-[#8c8273] border-b border-[#d6cfc2] flex justify-between items-center">
@@ -713,99 +704,6 @@ export default function Home() {
     </form>
   );
 
-  const renderCalendarContent = (isLarge = false) => {
-    const heightClass = isLarge ? 'h-24 md:h-32' : 'h-16';
-    const textClass = isLarge ? 'text-xs md:text-sm' : 'text-[10px]';
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-[#3d3832] flex items-center gap-1.5">
-            📅 鑑賞カレンダー
-          </h2>
-          <div className="flex items-center gap-1 text-xs font-semibold text-[#5c5346]">
-            <button
-              type="button"
-              onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-              className="p-1 hover:bg-[#f0ebe1] rounded transition"
-            >
-              ◀
-            </button>
-            <span className="min-w-[70px] text-center font-bold">
-              {year}年{month + 1}月
-            </span>
-            <button
-              type="button"
-              onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-              className="p-1 hover:bg-[#f0ebe1] rounded transition"
-            >
-              ▶
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8c8273] pb-1 border-b border-[#d6cfc2]">
-          <span className="text-[#a34743]">日</span>
-          <span>月</span>
-          <span>火</span>
-          <span>水</span>
-          <span>木</span>
-          <span>金</span>
-          <span className="text-[#4a6b82]">土</span>
-        </div>
-
-        <div className="grid grid-cols-7 gap-1.5">
-          {calendarDays.map((d, i) => {
-            if (d === null) {
-              return <div key={`empty-${i}`} className={`${heightClass} bg-[#f0ebe1]/30 rounded-lg`}></div>;
-            }
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const dayMovies = movies.filter((m) => m.watchedDate === dateStr);
-            const hasWatched = dayMovies.length > 0;
-            const movie = hasWatched ? dayMovies[0] : null;
-
-            return (
-              <div
-                key={`day-${d}`}
-                className={`${heightClass} flex flex-col items-center justify-between p-1 rounded-lg border relative overflow-hidden ${textClass} ${
-                  hasWatched 
-                    ? 'bg-white border-[#d4b5ad] shadow-sm' 
-                    : 'bg-[#f4efe6] border-[#d6cfc2] text-[#8c8273]'
-                }`}
-              >
-                <span className={`self-start font-mono leading-none z-10 ${hasWatched ? 'text-[#a34743] font-bold bg-white/90 px-1 rounded' : 'text-[#8c8273]'}`}>
-                  {d}
-                </span>
-
-                {movie && movie.imageUrl ? (
-                  <div 
-                    onClick={() => handleJumpToMovie(movie)}
-                    className="absolute inset-0 pt-4 cursor-pointer group flex items-center justify-center"
-                    title={`${movie.title} (クリックでジャンプ)`}
-                  >
-                    <img 
-                      src={movie.imageUrl} 
-                      alt={movie.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition" 
-                    />
-                  </div>
-                ) : movie ? (
-                  <div 
-                    onClick={() => handleJumpToMovie(movie)}
-                    className="absolute inset-0 pt-4 cursor-pointer flex items-center justify-center text-[10px] text-[#7a4f43] text-center px-0.5 overflow-hidden font-medium bg-[#f0e4df]/70"
-                    title={`${movie.title} (クリックでジャンプ)`}
-                  >
-                    {movie.title}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <main className="min-h-screen bg-[#f4efe6] text-[#3d3832] p-4 md:p-8 flex flex-col md:flex-row gap-8 relative">
       <div className="w-full md:w-1/3">
@@ -872,7 +770,6 @@ export default function Home() {
       </div>
 
       <div className="flex-1 space-y-8 flex flex-col">
-        {/* 画像風のステータスボード（今年・今月の鑑賞本数カウンター） */}
         <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-6 md:p-8 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#e8dec5] rounded-full opacity-60 pointer-events-none"></div>
 
@@ -910,4 +807,27 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 以下の他の表示部分（一覧やタブなど）はそのまま継続します */}
+        {/* フィルターボタンや作品リストの表示部分 */}
+        <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-6 rounded-3xl shadow-sm space-y-4">
+          <div className="flex flex-wrap gap-2 items-center justify-between">
+            <div className="flex gap-2">
+              {['すべて', '映画', 'ドラマ'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    selectedCategory === cat
+                      ? 'bg-[#7a4f43] text-white shadow-sm'
+                      : 'bg-[#f0ebe1] text-[#786e61] hover:bg-[#e4dcd0]'
+                  }`}
+                >
+                  {cat === 'すべて' ? '🌟 すべて' : cat === '映画' ? '🎬 映画' : '📺 ドラマ'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
