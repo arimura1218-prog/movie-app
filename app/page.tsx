@@ -47,7 +47,6 @@ export default function Home() {
   const [newMemberName, setNewMemberName] = useState('');
   const [newGenreName, setNewGenreName] = useState('');
 
-  // 選択状態（フィルタ）を localStorage から復元
   const [selectedCategory, setSelectedCategory] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('selectedCategory');
@@ -56,7 +55,6 @@ export default function Home() {
     return 'すべて';
   });
 
-  // フォーム用カテゴリも、最後に選んだカテゴリ（すべて以外）をデフォルトにする
   const [category, setCategory] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('selectedCategory');
@@ -291,18 +289,6 @@ export default function Home() {
     setImageUrl('');
     setTmdbResults([]);
     setIsFormOpen(false);
-  };
-
-  const handleWatcherToggle = (member: string) => {
-    if (watchers.includes(member)) {
-      if (watchers.length === 1) {
-        alert('鑑賞者は最低1人選択してください。');
-        return;
-      }
-      setWatchers(watchers.filter((w) => w !== member));
-    } else {
-      setWatchers([...watchers, member]);
-    }
   };
 
   const getStatusBadgeStyle = (st: string) => {
@@ -682,6 +668,99 @@ export default function Home() {
     </form>
   );
 
+  const renderCalendarContent = (isLarge = false) => {
+    const heightClass = isLarge ? 'h-24 md:h-32' : 'h-16';
+    const textClass = isLarge ? 'text-xs md:text-sm' : 'text-[10px]';
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#3d3832] flex items-center gap-1.5">
+            📅 鑑賞カレンダー
+          </h2>
+          <div className="flex items-center gap-1 text-xs font-semibold text-[#5c5346]">
+            <button
+              type="button"
+              onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+              className="p-1 hover:bg-[#f0ebe1] rounded transition"
+            >
+              ◀
+            </button>
+            <span className="min-w-[70px] text-center font-bold">
+              {year}年{month + 1}月
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+              className="p-1 hover:bg-[#f0ebe1] rounded transition"
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8c8273] pb-1 border-b border-[#d6cfc2]">
+          <span className="text-[#a34743]">日</span>
+          <span>月</span>
+          <span>火</span>
+          <span>水</span>
+          <span>木</span>
+          <span>金</span>
+          <span className="text-[#4a6b82]">土</span>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5">
+          {calendarDays.map((d, i) => {
+            if (d === null) {
+              return <div key={`empty-${i}`} className={`${heightClass} bg-[#f0ebe1]/30 rounded-lg`}></div>;
+            }
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayMovies = movies.filter((m) => m.watchedDate === dateStr);
+            const hasWatched = dayMovies.length > 0;
+            const movie = hasWatched ? dayMovies[0] : null;
+
+            return (
+              <div
+                key={`day-${d}`}
+                className={`${heightClass} flex flex-col items-center justify-between p-1 rounded-lg border relative overflow-hidden ${textClass} ${
+                  hasWatched 
+                    ? 'bg-white border-[#d4b5ad] shadow-sm' 
+                    : 'bg-[#f4efe6] border-[#d6cfc2] text-[#8c8273]'
+                }`}
+              >
+                <span className={`self-start font-mono leading-none z-10 ${hasWatched ? 'text-[#a34743] font-bold bg-white/90 px-1 rounded' : 'text-[#8c8273]'}`}>
+                  {d}
+                </span>
+
+                {movie && movie.imageUrl ? (
+                  <div 
+                    onClick={() => handleJumpToMovie(movie)}
+                    className="absolute inset-0 pt-4 cursor-pointer group flex items-center justify-center"
+                    title={`${movie.title} (クリックでジャンプ)`}
+                  >
+                    <img 
+                      src={movie.imageUrl} 
+                      alt={movie.title} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition" 
+                    />
+                  </div>
+                ) : movie ? (
+                  <div 
+                    onClick={() => handleJumpToMovie(movie)}
+                    className="absolute inset-0 pt-4 cursor-pointer flex items-center justify-center text-[10px] text-[#7a4f43] text-center px-0.5 overflow-hidden font-medium bg-[#f0e4df]/70"
+                    title={`${movie.title} (クリックでジャンプ)`}
+                  >
+                    {movie.title}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <main className="min-h-screen bg-[#f4efe6] text-[#3d3832] p-4 md:p-8 flex flex-col md:flex-row gap-8 relative">
       <div className="w-full md:w-1/3">
@@ -894,7 +973,6 @@ export default function Home() {
                       </h3>
                     </div>
 
-                    {/* 編集ボタンの縦長崩れを修正（flex-shrink-0 と whitespace-nowrap を追加） */}
                     <button
                       type="button"
                       onClick={() => handleStartEdit(movie)}
