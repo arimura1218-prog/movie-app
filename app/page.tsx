@@ -47,6 +47,7 @@ export default function Home() {
   const [newMemberName, setNewMemberName] = useState('');
   const [newGenreName, setNewGenreName] = useState('');
 
+  // 一覧の選択フィルター（すべて / 映画 / ドラマ）を localStorage で記憶
   const [selectedCategory, setSelectedCategory] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('selectedCategory');
@@ -55,10 +56,11 @@ export default function Home() {
     return 'すべて';
   });
 
+  // フォームの大分類（映画 / ドラマ）も localStorage で記憶・復元
   const [category, setCategory] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('selectedCategory');
-      return (saved === '映画' || saved === 'ドラマ') ? saved : '映画';
+      const saved = localStorage.getItem('lastFormCategory');
+      if (saved === '映画' || saved === 'ドラマ') return saved;
     }
     return '映画';
   });
@@ -113,6 +115,12 @@ export default function Home() {
   }, [selectedCategory]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lastFormCategory', category);
+    }
+  }, [category]);
+
+  useEffect(() => {
     localStorage.setItem('searchKeyword', searchKeyword);
   }, [searchKeyword]);
 
@@ -145,7 +153,8 @@ export default function Home() {
         const data = await res.json();
         const formattedData = data.map((m: any) => ({
           ...m,
-          category: m.category || '映画',
+          // DB側のカラムが category または media_type / type などの場合にも対応
+          category: m.category || m.media_type || m.type || '映画',
           watchers: m.watchers || (m.watcher ? [m.watcher] : [members[0] || 'ユウ']),
         }));
         setMovies(formattedData);
@@ -279,7 +288,9 @@ export default function Home() {
   const resetForm = () => {
     setEditingId(null);
     setTitle('');
-    setCategory(selectedCategory === 'ドラマ' ? 'ドラマ' : '映画');
+    // フォームのリセット時も最後の大分類を維持
+    const saved = localStorage.getItem('lastFormCategory');
+    setCategory(saved === 'ドラマ' ? 'ドラマ' : '映画');
     setGenre(genres[0] || '');
     setStatus('観たい');
     setWatchedDate('');
