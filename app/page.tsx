@@ -704,6 +704,99 @@ export default function Home() {
     </form>
   );
 
+  const renderCalendarContent = (isLarge = false) => {
+    const heightClass = isLarge ? 'h-24 md:h-32' : 'h-16';
+    const textClass = isLarge ? 'text-xs md:text-sm' : 'text-[10px]';
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#3d3832] flex items-center gap-1.5">
+            📅 鑑賞カレンダー
+          </h2>
+          <div className="flex items-center gap-1 text-xs font-semibold text-[#5c5346]">
+            <button
+              type="button"
+              onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+              className="p-1 hover:bg-[#f0ebe1] rounded transition"
+            >
+              ◀
+            </button>
+            <span className="min-w-[70px] text-center font-bold">
+              {year}年{month + 1}月
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+              className="p-1 hover:bg-[#f0ebe1] rounded transition"
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8c8273] pb-1 border-b border-[#d6cfc2]">
+          <span className="text-[#a34743]">日</span>
+          <span>月</span>
+          <span>火</span>
+          <span>水</span>
+          <span>木</span>
+          <span>金</span>
+          <span className="text-[#4a6b82]">土</span>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5">
+          {calendarDays.map((d, i) => {
+            if (d === null) {
+              return <div key={`empty-${i}`} className={`${heightClass} bg-[#f0ebe1]/30 rounded-lg`}></div>;
+            }
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayMovies = movies.filter((m) => m.watchedDate === dateStr);
+            const hasWatched = dayMovies.length > 0;
+            const movie = hasWatched ? dayMovies[0] : null;
+
+            return (
+              <div
+                key={`day-${d}`}
+                className={`${heightClass} flex flex-col items-center justify-between p-1 rounded-lg border relative overflow-hidden ${textClass} ${
+                  hasWatched 
+                    ? 'bg-white border-[#d4b5ad] shadow-sm' 
+                    : 'bg-[#f4efe6] border-[#d6cfc2] text-[#8c8273]'
+                }`}
+              >
+                <span className={`self-start font-mono leading-none z-10 ${hasWatched ? 'text-[#a34743] font-bold bg-white/90 px-1 rounded' : 'text-[#8c8273]'}`}>
+                  {d}
+                </span>
+
+                {movie && movie.imageUrl ? (
+                  <div 
+                    onClick={() => handleJumpToMovie(movie)}
+                    className="absolute inset-0 pt-4 cursor-pointer group flex items-center justify-center"
+                    title={`${movie.title} (クリックでジャンプ)`}
+                  >
+                    <img 
+                      src={movie.imageUrl} 
+                      alt={movie.title} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition" 
+                    />
+                  </div>
+                ) : movie ? (
+                  <div 
+                    onClick={() => handleJumpToMovie(movie)}
+                    className="absolute inset-0 pt-4 cursor-pointer flex items-center justify-center text-[10px] text-[#7a4f43] text-center px-0.5 overflow-hidden font-medium bg-[#f0e4df]/70"
+                    title={`${movie.title} (クリックでジャンプ)`}
+                  >
+                    {movie.title}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <main className="min-h-screen bg-[#f4efe6] text-[#3d3832] p-4 md:p-8 flex flex-col md:flex-row gap-8 relative">
       <div className="w-full md:w-1/3">
@@ -773,7 +866,7 @@ export default function Home() {
         <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-6 md:p-8 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#e8dec5] rounded-full opacity-60 pointer-events-none"></div>
 
-          <div className="flex items-center justify-between z-10 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between z-10 mb-4 gap-1">
             <span className="text-xs font-bold text-[#8c8273] tracking-wider uppercase">
               {targetYear} 年 統計 ({selectedCategory} / {selectedMember})
             </span>
@@ -807,13 +900,14 @@ export default function Home() {
           </div>
         </div>
 
-        {/* フィルターボタンや作品リストの表示部分 */}
+        {/* フィルター・タブ・作品一覧セクション */}
         <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-6 rounded-3xl shadow-sm space-y-4">
           <div className="flex flex-wrap gap-2 items-center justify-between">
             <div className="flex gap-2">
               {['すべて', '映画', 'ドラマ'].map((cat) => (
                 <button
                   key={cat}
+                  type="button"
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
                     selectedCategory === cat
@@ -825,7 +919,147 @@ export default function Home() {
                 </button>
               ))}
             </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedMember}
+                onChange={(e) => setSelectedMember(e.target.value)}
+                className="border border-[#d6cfc2] rounded-xl px-3 py-2 text-xs font-bold text-[#3d3832] bg-[#fbf9f5] focus:outline-none"
+              >
+                <option value="全員">全員</option>
+                {members.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-[#d6cfc2] rounded-xl px-3 py-2 text-xs font-bold text-[#3d3832] bg-[#fbf9f5] focus:outline-none"
+              >
+                <option value="newest">登録順</option>
+                <option value="statusOrder">ステータス順</option>
+                <option value="watchedDateDesc">鑑賞日(新しい順)</option>
+                <option value="watchedDateAsc">鑑賞日(古い順)</option>
+                <option value="ratingDesc">評価が高い順</option>
+                <option value="titleAsc">タイトル順</option>
+              </select>
+            </div>
           </div>
+
+          <div className="pt-2">
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder="タイトル、ジャンル、メモ、鑑賞者で検索..."
+              className="w-full border border-[#d6cfc2] rounded-xl px-4 py-2.5 text-xs text-[#3d3832] bg-[#fbf9f5] placeholder-[#a69e91] focus:outline-none focus:ring-2 focus:ring-[#a34743]"
+            />
+          </div>
+        </div>
+
+        {/* 作品リスト一覧 */}
+        <div className="space-y-4">
+          {paginatedMovies.length === 0 ? (
+            <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-12 rounded-3xl text-center text-[#8c8273] text-sm">
+              条件に一致する作品が見つかりませんでした。
+            </div>
+          ) : (
+            paginatedMovies.map((movie) => (
+              <div
+                key={movie.id}
+                ref={(el) => { movieCardRefs.current[movie.id] = el; }}
+                className={`bg-[#fbf9f5] border rounded-3xl p-5 shadow-sm transition flex flex-col md:flex-row gap-4 items-start ${
+                  highlightedMovieId === movie.id ? 'border-[#a34743] ring-2 ring-[#a34743]' : 'border-[#d6cfc2]'
+                }`}
+              >
+                {movie.imageUrl ? (
+                  <img
+                    src={movie.imageUrl}
+                    alt={movie.title}
+                    className="w-24 h-36 object-cover rounded-xl border border-[#d6cfc2] shadow-sm flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-24 h-36 bg-[#f0ebe1] rounded-xl border border-[#d6cfc2] flex items-center justify-center text-2xl flex-shrink-0">
+                    🎬
+                  </div>
+                )}
+
+                <div className="flex-1 space-y-2 w-full">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#e8dec5] text-[#7a4f43]">
+                          {movie.category || '映画'}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#f0ebe1] text-[#5c5346]">
+                          {movie.genre}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${getStatusBadgeStyle(movie.status)}`}>
+                          {movie.status}
+                        </span>
+                      </div>
+                      <h3 className="text-base font-bold text-[#3d3832]">
+                        {movie.title}
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(movie)}
+                      className="text-xs bg-[#f0ebe1] hover:bg-[#e4dcd0] text-[#3d3832] px-3 py-1.5 rounded-xl font-medium transition"
+                    >
+                      編集
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-[#786e61]">
+                    {movie.watchedDate && <span>鑑賞日: {movie.watchedDate}</span>}
+                    {movie.rating && <span className="text-[#a34743] font-bold">★ {movie.rating} / 5.0</span>}
+                    {movie.watchers && movie.watchers.length > 0 && (
+                      <span>鑑賞者: {movie.watchers.join(', ')}</span>
+                    )}
+                  </div>
+
+                  {movie.memo && (
+                    <p className="text-xs text-[#5c5346] bg-[#f4efe6] p-3 rounded-xl border border-[#d6cfc2] whitespace-pre-wrap">
+                      {movie.memo}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ページネーション */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 pt-4">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              className="px-4 py-2 rounded-xl bg-[#fbf9f5] border border-[#d6cfc2] text-xs font-bold disabled:opacity-40 hover:bg-[#f0ebe1] transition"
+            >
+              前へ
+            </button>
+            <span className="text-xs font-bold text-[#786e61]">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              className="px-4 py-2 rounded-xl bg-[#fbf9f5] border border-[#d6cfc2] text-xs font-bold disabled:opacity-40 hover:bg-[#f0ebe1] transition"
+            >
+              次へ
+            </button>
+          </div>
+        )}
+
+        {/* 鑑賞カレンダーセクション */}
+        <div className="bg-[#fbf9f5] border border-[#d6cfc2] p-6 md:p-8 rounded-3xl shadow-sm">
+          {renderCalendarContent(true)}
         </div>
       </div>
     </main>
