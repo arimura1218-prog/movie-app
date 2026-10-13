@@ -14,7 +14,6 @@ export async function GET() {
   }
 
   const formattedData = (data || []).map((item: any) => {
-    // watcherカラムに入っているデータ（カンマ区切りや単一文字列、または配列）を配列に変換
     let parsedWatchers: string[] = ['ユウ'];
     if (item.watcher) {
       if (Array.isArray(item.watcher)) {
@@ -27,6 +26,7 @@ export async function GET() {
     return {
       id: item.id.toString(),
       title: item.title,
+      category: item.category || '映画', // 👈 ここでDBからcategoryを取得するように追加
       genre: item.genre,
       status: item.status,
       watchedDate: item.watched_date,
@@ -46,7 +46,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const newId = Date.now().toString();
 
-    // watchers配列をカンマ区切りの文字列にして保存
     const watchersStr = Array.isArray(body.watchers) 
       ? body.watchers.join(', ') 
       : (body.watcher || 'ユウ');
@@ -54,6 +53,7 @@ export async function POST(request: Request) {
     const newMovie = {
       id: newId,
       title: body.title || '無題',
+      category: body.category || '映画', // 👈 ここで大分類を保存するように追加
       genre: body.genre || 'アクション',
       status: body.status || '観たい',
       watched_date: body.watchedDate || '',
@@ -84,6 +84,7 @@ export async function POST(request: Request) {
     const responseItem = {
       id: data[0].id.toString(),
       title: data[0].title,
+      category: data[0].category || '映画', // 👈 レスポンスにもcategoryを含める
       genre: data[0].genre,
       status: data[0].status,
       watchedDate: data[0].watched_date,
@@ -107,11 +108,11 @@ export async function PUT(request: Request) {
     
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;
+    if (body.category !== undefined) updateData.category = body.category; // 👈 更新時にもcategoryを保存するように追加
     if (body.genre !== undefined) updateData.genre = body.genre;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.watchedDate !== undefined) updateData.watched_date = body.watchedDate;
     
-    // watchers配列を受け取ったらカンマ区切り文字列に変換して保存
     if (body.watchers !== undefined) {
       updateData.watcher = Array.isArray(body.watchers) 
         ? body.watchers.join(', ') 
@@ -148,7 +149,7 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+      return NextResponse.json({ error: id }, { status: 400 });
     }
 
     const { error } = await supabase
